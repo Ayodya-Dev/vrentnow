@@ -145,3 +145,60 @@ model Item {
 
   @@index([published])
 }
+
+/// Vehicle type group (SUV, Sedan, Van, …) — shown on customer site + admin.
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  icon        String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  vehicles    Vehicle[]
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  INACTIVE
+}
+
+model Vehicle {
+  id             String            @id @default(cuid())
+  name           String
+  slug           String            @unique
+  brand          String
+  model          String
+  year           Int
+  seats          Int
+  fuel           FuelType
+  transmission   TransmissionType
+  pricePerDay    Decimal           @db.Decimal(10, 2)
+  status         VehicleStatus     @default(AVAILABLE)
+  description    String?
+  imageFileIds   String[]
+  category       Category          @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deletedAt      DateTime?
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([pricePerDay])
+}

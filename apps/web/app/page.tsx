@@ -11,7 +11,7 @@ export default function HomePage() {
       </h1>
       <p className="max-w-xl text-lg text-pretty text-muted-foreground">{site.description}</p>
       <div className="flex gap-3">
-        <Button render={<Link href="/items" />}>Browse items</Button>
+        <Button render={<Link href="/vehicles" />}>Browse vehicles</Button>
         <Button variant="outline" render={<Link href="/login" />}>
           Sign in
         </Button>

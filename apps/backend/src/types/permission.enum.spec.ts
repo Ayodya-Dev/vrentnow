@@ -24,6 +24,8 @@ describe('RBAC vocabulary', () => {
     const perms = permissionsForRoles([Role.VIEWER]);
     expect(perms.has(Permission.ITEMS_READ)).toBe(true);
     expect(perms.has(Permission.ITEMS_WRITE)).toBe(false);
+    expect(perms.has(Permission.VEHICLES_READ)).toBe(true);
+    expect(perms.has(Permission.VEHICLES_WRITE)).toBe(false);
   });
 
   it('unions permissions across multiple roles', () => {

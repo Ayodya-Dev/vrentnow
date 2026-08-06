@@ -5,6 +5,10 @@ export type Permission =
   | "STAFF_WRITE"
   | "ITEMS_READ"
   | "ITEMS_WRITE"
+  | "CATEGORIES_READ"
+  | "CATEGORIES_WRITE"
+  | "VEHICLES_READ"
+  | "VEHICLES_WRITE"
   | "ASSETS_READ"
   | "ASSETS_WRITE"
   | "AUDIT_READ";
@@ -23,6 +27,10 @@ const ALL: Permission[] = [
   "STAFF_WRITE",
   "ITEMS_READ",
   "ITEMS_WRITE",
+  "CATEGORIES_READ",
+  "CATEGORIES_WRITE",
+  "VEHICLES_READ",
+  "VEHICLES_WRITE",
   "ASSETS_READ",
   "ASSETS_WRITE",
   "AUDIT_READ",
@@ -30,9 +38,29 @@ const ALL: Permission[] = [
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SUPER_ADMIN: ALL,
-  ADMIN: ["STAFF_READ", "ITEMS_READ", "ITEMS_WRITE", "ASSETS_READ", "ASSETS_WRITE", "AUDIT_READ"],
-  EDITOR: ["ITEMS_READ", "ITEMS_WRITE", "ASSETS_READ", "ASSETS_WRITE"],
-  VIEWER: ["ITEMS_READ", "ASSETS_READ"],
+  ADMIN: [
+    "STAFF_READ",
+    "ITEMS_READ",
+    "ITEMS_WRITE",
+    "CATEGORIES_READ",
+    "CATEGORIES_WRITE",
+    "VEHICLES_READ",
+    "VEHICLES_WRITE",
+    "ASSETS_READ",
+    "ASSETS_WRITE",
+    "AUDIT_READ",
+  ],
+  EDITOR: [
+    "ITEMS_READ",
+    "ITEMS_WRITE",
+    "CATEGORIES_READ",
+    "CATEGORIES_WRITE",
+    "VEHICLES_READ",
+    "VEHICLES_WRITE",
+    "ASSETS_READ",
+    "ASSETS_WRITE",
+  ],
+  VIEWER: ["ITEMS_READ", "CATEGORIES_READ", "VEHICLES_READ", "ASSETS_READ"],
   // A self-registered end user. No admin surface at all.
   USER: [],
 };

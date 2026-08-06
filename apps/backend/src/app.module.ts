@@ -13,6 +13,8 @@ import { StaffModule } from './staff/staff.module';
 import { AuditModule } from './audit/audit.module';
 import { FilesModule } from './files/files.module';
 import { ItemsModule } from './items/items.module';
+import { CategoriesModule } from './categories/categories.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
 import { MailModule } from './mail/mail.module';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { validationSchema } from './config/env.validation';
@@ -33,6 +35,8 @@ import { throttlers } from './auth/throttle.config';
     AuditModule,
     FilesModule,
     ItemsModule,
+    CategoriesModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [
