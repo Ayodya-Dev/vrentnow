@@ -1,0 +1,27 @@
+{
+  "name": "@workspace/api-client",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../apps/backend/openapi.json -o ./src/schema.d.ts",
+    "build": "bun run generate",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^9",
+    "openapi-typescript": "^7.6.0",
+    "typescript": "^6",
+    "vitest": "^4.1.10"
+  }
+}

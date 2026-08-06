@@ -1,0 +1,209 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Not secrets: this database is created, used and destroyed inside the job.
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/groundwork
+  NODE_ENV: test
+  JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+  JWT_PUBLIC_KEY_PATH: ./keys/public.pem
+  AUTH_EXCHANGE_SECRET: ci-auth-exchange-secret
+  ADMIN_EMAIL: admin@example.com
+  ADMIN_USERNAME: admin
+  ADMIN_PASSWORD: ChangeMe123!
+  FILES_DRIVER: local
+  MAIL_TRANSPORT: log
+
+jobs:
+  # Static checks and unit tests. No database needed: openapi generation stubs its
+  # own config and skips connecting, which is what lets this job stay fast.
+  verify:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      # Frozen everywhere except Dependabot: it can't update bun.lock in a workspace
+      # (dependabot-core#14223), so a frozen install would abort before the bump is
+      # ever tested. The Sync Dependabot bun.lock workflow commits the real lockfile.
+      - name: Install
+        run: |
+          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
+            bun install
+          else
+            bun install --frozen-lockfile
+          fi
+
+      - name: Generate the encryption key
+        run: echo "DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Lint
+        run: bunx turbo run lint
+
+      - name: Typecheck
+        run: bunx turbo run typecheck
+
+      - name: Test
+        run: bunx turbo run test
+
+      - name: Build
+        run: bunx turbo run build
+
+      - name: Check formatting
+        run: bunx prettier --check .
+
+      - name: Fail if openapi.json is stale
+        run: |
+          bunx turbo run openapi --filter=backend
+          if ! git diff --quiet -- apps/backend/openapi.json; then
+            echo "::error::openapi.json is out of date. Run 'bun run openapi' in apps/backend and commit the result."
+            git --no-pager diff --stat -- apps/backend/openapi.json
+            exit 1
+          fi
+
+  # The e2e suite drives the real stack: Next -> NextAuth -> NestJS -> Postgres.
+  e2e:
+    name: e2e (real backend)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: groundwork
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      # See the verify job: non-frozen only for Dependabot (dependabot-core#14223).
+      - name: Install
+        run: |
+          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
+            bun install
+          else
+            bun install --frozen-lockfile
+          fi
+
+      - name: Generate the encryption key
+        run: echo "DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Generate signing keys
+        working-directory: apps/backend
+        run: bun run keys:generate
+
+      - name: Migrate and seed
+        working-directory: apps/backend
+        run: |
+          bunx prisma migrate deploy
+          bun run db:seed
+
+      # These drive the real HTTP stack against the real database: router, global
+      # pipes, guards, Prisma, Postgres. They are what proves the guards are
+      # actually attached to the routes rather than merely correct in isolation.
+      - name: Integration tests (real database)
+        working-directory: apps/backend
+        run: bun run test:int
+
+      - name: Start the API
+        working-directory: apps/backend
+        run: |
+          bun run build
+          nohup bun run start:prod > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:9000/health > /dev/null; then
+              echo "API is up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::The API never became healthy"
+          cat /tmp/api.log
+          exit 1
+
+      - name: Install the browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: e2e — web
+        working-directory: apps/web
+        env:
+          API_URL: http://localhost:9000/v1
+        run: bunx playwright test
+
+      - name: e2e — admin
+        working-directory: apps/admin
+        env:
+          API_URL: http://localhost:9000/v1
+        run: bunx playwright test
+
+      - name: Upload the report when something fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/admin/playwright-report
+            /tmp/api.log
+          retention-days: 7
+
+  # The Dockerfiles were broken for a long time precisely because nothing ever
+  # built them: a monorepo image only resolves from the repo root, and the ones
+  # inherited from a standalone repo did not. Build all three on every change so
+  # they cannot rot again.
+  images:
+    name: docker images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [backend, web, admin]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # The Dockerfile runs `bun install --frozen-lockfile`, reading the lockfile from
+      # this checked-out context. Dependabot leaves it stale (dependabot-core#14223),
+      # so regenerate it in the context before the build — otherwise the image build
+      # fails where the other jobs were taught to tolerate it.
+      - if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - if: ${{ github.actor == 'dependabot[bot]' }}
+        run: bun install
+
+      - name: Build ${{ matrix.app }}
+        uses: docker/build-push-action@v7
+        with:
+          # The root, not the app directory. A Bun workspace only installs from there.
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          tags: groundwork-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max

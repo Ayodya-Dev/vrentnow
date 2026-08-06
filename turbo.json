@@ -1,0 +1,55 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalEnv": ["CI", "NODE_ENV"],
+  "tasks": {
+    "openapi": {
+      "inputs": ["src/**/*.ts", "scripts/**/*.ts"],
+      "outputs": ["openapi.json", "dist/**"]
+    },
+    "generate": {
+      "dependsOn": ["backend#openapi"],
+      "inputs": ["../../apps/backend/openapi.json"],
+      "outputs": ["src/schema.d.ts"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/schema.d.ts"],
+      "env": [
+        "API_URL",
+        "AUTH_SECRET",
+        "AUTH_URL",
+        "AUTH_GOOGLE_ID",
+        "AUTH_GOOGLE_SECRET",
+        "AUTH_EXCHANGE_SECRET"
+      ]
+    },
+    "@workspace/api-client#build": {
+      "dependsOn": ["backend#openapi"],
+      "inputs": ["src/**", "../../apps/backend/openapi.json"],
+      "outputs": ["src/schema.d.ts"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "format": {
+      "dependsOn": ["^format"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
