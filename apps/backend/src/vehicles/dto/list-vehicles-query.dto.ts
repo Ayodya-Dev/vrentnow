@@ -1,7 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { FuelType, TransmissionType, VehicleStatus } from '@prisma/client';
-import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class ListVehiclesQueryDto extends PaginationQueryDto {
@@ -14,6 +21,13 @@ export class ListVehiclesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Comma-separated category ids (OR match)',
+  })
+  @IsOptional()
+  @IsString()
+  categoryIds?: string;
 
   @ApiPropertyOptional({ enum: VehicleStatus })
   @IsOptional()
@@ -29,6 +43,34 @@ export class ListVehiclesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(TransmissionType)
   transmission?: TransmissionType;
+
+  @ApiPropertyOptional({ description: 'Exact seat count' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  seats?: number;
+
+  @ApiPropertyOptional({ description: 'Minimum seats (e.g. 7 for 7+)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  seatsMin?: number;
+
+  @ApiPropertyOptional({ description: 'Minimum price per day' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum price per day' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
 
   @ApiPropertyOptional({
     description: 'Admin only — when true, include non-AVAILABLE vehicles',

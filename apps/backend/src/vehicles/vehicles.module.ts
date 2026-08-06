@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { FilesModule } from '../files/files.module';
 import {
   AdminVehiclesController,
   VehiclesController,
@@ -10,7 +11,7 @@ import { VehiclesService } from './vehicles.service';
 import { VehiclesRepository } from './vehicles.repository';
 
 @Module({
-  imports: [PrismaModule, AuditModule, CategoriesModule],
+  imports: [PrismaModule, AuditModule, CategoriesModule, FilesModule],
   controllers: [VehiclesController, AdminVehiclesController],
   providers: [VehiclesService, VehiclesRepository],
   exports: [VehiclesService],

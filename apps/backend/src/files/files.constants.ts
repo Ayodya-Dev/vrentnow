@@ -6,6 +6,7 @@ export const FILE_KINDS = [
   'banner',
   'document',
   'misc',
+  'vehicle',
 ] as const;
 
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;

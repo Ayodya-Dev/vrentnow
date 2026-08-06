@@ -30,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         fontMono.variable,
       )}
     >
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-dvh flex-col bg-[#F6F7F9]">
         <Providers>
           <SiteHeader />
           <main className="flex-1">{children}</main>

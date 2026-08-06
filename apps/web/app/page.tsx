@@ -1,21 +1,25 @@
-import Link from "next/link";
-import { Container } from "@/components/layout/container";
-import { Button } from "@workspace/ui/components/button";
-import { site } from "@/lib/site";
+import { HomeHero } from "@/components/home/home-hero";
+import { HomeHowItWorks } from "@/components/home/home-how-it-works";
+import { HomeCollection } from "@/components/home/home-collection";
+import { HomeWhyChooseUs } from "@/components/home/home-why-choose-us";
+import { listVehicles } from "@/lib/api/vehicles";
+import { listCategories } from "@/lib/api/categories";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [vehiclesPage, categoriesPage] = await Promise.all([
+    listVehicles({ page: 1 }).catch(() => ({ items: [], meta: { total: 0, page: 1, limit: 12, totalPages: 0 } })),
+    listCategories(1).catch(() => ({
+      items: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    })),
+  ]);
+
   return (
-    <Container className="flex flex-col items-start gap-6 py-24">
-      <h1 className="max-w-2xl font-heading text-5xl font-semibold tracking-tight text-balance">
-        {site.name}
-      </h1>
-      <p className="max-w-xl text-lg text-pretty text-muted-foreground">{site.description}</p>
-      <div className="flex gap-3">
-        <Button render={<Link href="/vehicles" />}>Browse vehicles</Button>
-        <Button variant="outline" render={<Link href="/login" />}>
-          Sign in
-        </Button>
-      </div>
-    </Container>
+    <div className="bg-[#F6F7F9]">
+      <HomeHero />
+      <HomeHowItWorks />
+      <HomeCollection vehicles={vehiclesPage.items} categories={categoriesPage.items} />
+      <HomeWhyChooseUs />
+    </div>
   );
 }

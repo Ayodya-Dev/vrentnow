@@ -11,6 +11,7 @@ import {
 } from './vehicles.repository';
 import { CategoriesRepository } from '../categories/categories.repository';
 import { AuditService } from '../audit/audit.service';
+import { FilesService } from '../files/files.service';
 import { slugify } from '../common/slug';
 import { buildOrderBy } from '../common/sorting';
 import {
@@ -21,6 +22,8 @@ import {
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { ListVehiclesQueryDto } from './dto/list-vehicles-query.dto';
+
+export type VehiclePublic = VehicleWithCategory & { imageUrls: string[] };
 
 const SORTABLE = [
   'name',
@@ -48,12 +51,29 @@ export class VehiclesService {
     private readonly repo: VehiclesRepository,
     private readonly categories: CategoriesRepository,
     private readonly audit: AuditService,
+    private readonly files: FilesService,
   ) {}
+
+  private async withImageUrls(
+    vehicle: VehicleWithCategory,
+  ): Promise<VehiclePublic> {
+    const assets = await this.files.getManyWithUrls(vehicle.imageFileIds);
+    return {
+      ...vehicle,
+      imageUrls: assets.map((a) => a.accessUrl),
+    };
+  }
+
+  private async withImageUrlsMany(
+    vehicles: VehicleWithCategory[],
+  ): Promise<VehiclePublic[]> {
+    return Promise.all(vehicles.map((v) => this.withImageUrls(v)));
+  }
 
   async create(
     dto: CreateVehicleDto,
     actorId: string,
-  ): Promise<VehicleWithCategory> {
+  ): Promise<VehiclePublic> {
     const category = await this.categories.findById(dto.categoryId);
     if (!category) {
       throw new BadRequestException('Category not found');
@@ -100,14 +120,14 @@ export class VehiclesService {
       meta: { name: vehicle.name },
     });
 
-    return vehicle;
+    return this.withImageUrls(vehicle);
   }
 
   async update(
     id: string,
     dto: UpdateVehicleDto,
     actorId: string,
-  ): Promise<VehicleWithCategory> {
+  ): Promise<VehiclePublic> {
     const existing = await this.repo.findById(id);
     if (!existing) throw new NotFoundException('Vehicle not found');
 
@@ -153,7 +173,7 @@ export class VehiclesService {
       meta: { changed: Object.keys(data) },
     });
 
-    return vehicle;
+    return this.withImageUrls(vehicle);
   }
 
   async remove(id: string, actorId: string): Promise<void> {
@@ -171,47 +191,75 @@ export class VehiclesService {
     });
   }
 
-  async findById(id: string): Promise<VehicleWithCategory> {
+  async findById(id: string): Promise<VehiclePublic> {
     const vehicle = await this.repo.findById(id);
     if (!vehicle) throw new NotFoundException('Vehicle not found');
-    return vehicle;
+    return this.withImageUrls(vehicle);
   }
 
   /** Public: only AVAILABLE vehicles. */
-  async findAvailableBySlug(slug: string): Promise<VehicleWithCategory> {
+  async findAvailableBySlug(slug: string): Promise<VehiclePublic> {
     const vehicle = await this.repo.findBySlug(slug);
     if (!vehicle || vehicle.status !== VehicleStatus.AVAILABLE) {
       throw new NotFoundException('Vehicle not found');
     }
-    return vehicle;
+    return this.withImageUrls(vehicle);
   }
 
-  list(query: ListVehiclesQueryDto): Promise<PaginatedResult<VehicleWithCategory>> {
+  list(query: ListVehiclesQueryDto): Promise<PaginatedResult<VehiclePublic>> {
     const where: Prisma.VehicleWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
-    if (query.categoryId) where.categoryId = query.categoryId;
-    if (query.fuel) where.fuel = query.fuel;
-    if (query.transmission) where.transmission = query.transmission;
+    this.applyFilters(where, query);
     return this.paginate(where, query);
   }
 
   listAvailable(
     query: ListVehiclesQueryDto,
-  ): Promise<PaginatedResult<VehicleWithCategory>> {
+  ): Promise<PaginatedResult<VehiclePublic>> {
     const where: Prisma.VehicleWhereInput = {
       deletedAt: null,
       status: VehicleStatus.AVAILABLE,
     };
-    if (query.categoryId) where.categoryId = query.categoryId;
+    this.applyFilters(where, query);
+    return this.paginate(where, query);
+  }
+
+  private applyFilters(
+    where: Prisma.VehicleWhereInput,
+    query: ListVehiclesQueryDto,
+  ): void {
+    const ids = [
+      ...(query.categoryId ? [query.categoryId] : []),
+      ...(query.categoryIds
+        ? query.categoryIds
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : []),
+    ];
+    if (ids.length === 1) where.categoryId = ids[0];
+    else if (ids.length > 1) where.categoryId = { in: ids };
+
     if (query.fuel) where.fuel = query.fuel;
     if (query.transmission) where.transmission = query.transmission;
-    return this.paginate(where, query);
+
+    if (query.seatsMin) {
+      where.seats = { gte: query.seatsMin };
+    } else if (query.seats) {
+      where.seats = query.seats;
+    }
+
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      where.pricePerDay = {};
+      if (query.minPrice !== undefined) where.pricePerDay.gte = query.minPrice;
+      if (query.maxPrice !== undefined) where.pricePerDay.lte = query.maxPrice;
+    }
   }
 
   private async paginate(
     where: Prisma.VehicleWhereInput,
     query: ListVehiclesQueryDto,
-  ): Promise<PaginatedResult<VehicleWithCategory>> {
+  ): Promise<PaginatedResult<VehiclePublic>> {
     if (query.q) {
       where.OR = [
         { name: { contains: query.q, mode: 'insensitive' } },
@@ -233,6 +281,7 @@ export class VehiclesService {
       this.repo.count(where),
     ]);
 
-    return buildPaginatedResult(rows, total, page, limit);
+    const items = await this.withImageUrlsMany(rows);
+    return buildPaginatedResult(items, total, page, limit);
   }
 }
