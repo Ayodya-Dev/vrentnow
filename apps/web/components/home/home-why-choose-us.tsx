@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "motion/react";
-import { Car2DIllustration } from "./car-2d-illustration";
 
 const TOP = [
   "Easier Rent on Your Budget",
@@ -69,24 +69,34 @@ export function HomeWhyChooseUs() {
           </div>
         </div>
 
-        <div className="hidden lg:block">
-          <div className="mb-4 grid grid-cols-3 gap-6 px-4">
+        <div className="hidden lg:block mx-auto max-w-5xl">
+          {/* Top Callouts */}
+          <div className="grid grid-cols-3 gap-6 px-4">
             <Callout label={TOP[0]} align="right" />
             <Callout label={TOP[1]} align="center" />
             <Callout label={TOP[2]} align="left" />
           </div>
 
+          {/* Centered Large Car Image */}
           <motion.div
-            className="relative mx-auto w-full max-w-4xl py-2"
+            className="relative mx-auto my-2 w-full flex items-center justify-center py-2"
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5 }}
           >
-            <Car2DIllustration className="mx-auto h-auto w-full" />
+            <Image
+              src="/images/home/g-wagon-v2.png"
+              alt="Mercedes G-Wagon SUV rental vehicle"
+              width={952}
+              height={579}
+              className="mx-auto h-auto max-h-[480px] w-full max-w-4xl object-contain drop-shadow-2xl"
+              priority
+            />
           </motion.div>
 
-          <div className="mt-4 grid grid-cols-3 gap-6 px-4">
+          {/* Bottom Callouts */}
+          <div className="grid grid-cols-3 gap-6 px-4">
             {BOTTOM.map((label, i) => (
               <motion.div
                 key={label}
@@ -118,7 +128,13 @@ export function HomeWhyChooseUs() {
             viewport={{ once: true }}
             transition={{ duration: 0.45 }}
           >
-            <Car2DIllustration className="mx-auto mb-10 h-auto w-full max-w-md" />
+            <Image
+              src="/images/home/g-wagon-v2.png"
+              alt="Mercedes G-Wagon SUV rental vehicle"
+              width={952}
+              height={579}
+              className="mx-auto mb-8 h-auto max-h-[320px] w-full max-w-md object-contain drop-shadow-xl"
+            />
           </motion.div>
           <div className="grid grid-cols-2 gap-6">
             {[...TOP, ...BOTTOM].map((label, i) => (

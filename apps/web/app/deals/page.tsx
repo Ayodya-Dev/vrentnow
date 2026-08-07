@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { SimplePage } from "@/components/layout/simple-page";
+import { DealsContent } from "@/components/deals/deals-content";
 
-export const metadata: Metadata = { title: "Deals & Offers" };
+export const metadata: Metadata = {
+  title: "Exclusive Deals & Special Offers",
+  description:
+    "Unlock exceptional savings on luxury vehicles, long-term rentals, and special event packages with VRentNow.",
+};
 
 export default function DealsPage() {
-  return (
-    <SimplePage
-      title="Deals & Offers"
-      description="Seasonal discounts and category offers will appear here. Check back soon for the latest promotions."
-    />
-  );
+  return <DealsContent />;
 }

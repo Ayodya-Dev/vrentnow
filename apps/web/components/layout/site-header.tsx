@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "./container";
 import { NAV_ITEMS } from "./nav-items";
+import { NavLinks } from "./nav-links";
 import { MobileNav } from "./mobile-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { auth } from "@/lib/auth";
@@ -25,15 +26,7 @@ export async function SiteHeader() {
           </Link>
 
           <nav className="hidden items-center gap-4 lg:flex xl:gap-5">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="whitespace-nowrap text-sm font-medium text-[#1D1F23]/70 transition-colors hover:text-[#1D1F23]"
-              >
-                {item.label}
-              </Link>
-            ))}
+            <NavLinks />
           </nav>
         </div>
 
