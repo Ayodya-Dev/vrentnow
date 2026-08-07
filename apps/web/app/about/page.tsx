@@ -9,6 +9,7 @@ import {
   IconAward,
   IconCar,
   IconHeadset,
+  IconCompass,
 } from "@tabler/icons-react";
 import { Container } from "@/components/layout/container";
 
@@ -69,7 +70,7 @@ export default function AboutPage() {
             {/* Hero Left Content */}
             <div className="flex flex-col justify-center lg:col-span-6">
               <div className="mb-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#E8A317]">
-                <span className="text-base font-semibold">/</span>
+                <IconCompass className="size-4 stroke-[2.2]" />
                 <span>OUR JOURNEY</span>
               </div>
 
