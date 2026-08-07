@@ -14,5 +14,8 @@ export type CategoryPage = {
 };
 
 export function listCategories(page = 1): Promise<CategoryPage> {
-  return getPublic<CategoryPage>("categories", { params: { page, limit: 20 } });
+  return getPublic<CategoryPage>("categories", {
+    params: { page, limit: 50 },
+    revalidate: false,
+  });
 }

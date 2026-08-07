@@ -8,6 +8,9 @@ import type { Permission } from "@/lib/permissions";
  */
 export const NAV_ITEMS: { label: string; href: string; permission?: Permission }[] = [
   { label: "Dashboard", href: "/" },
+  { label: "Vehicles", href: "/vehicles", permission: "VEHICLES_READ" },
+  { label: "Bookings", href: "/bookings", permission: "BOOKINGS_READ" },
+  { label: "Categories", href: "/categories", permission: "CATEGORIES_READ" },
   { label: "Items", href: "/items", permission: "ITEMS_READ" },
   { label: "Staff", href: "/staff", permission: "STAFF_READ" },
   { label: "Audit log", href: "/audit", permission: "AUDIT_READ" },

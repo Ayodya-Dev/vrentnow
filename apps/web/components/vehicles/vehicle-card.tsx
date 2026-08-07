@@ -15,7 +15,10 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <article className="group flex flex-col overflow-hidden bg-white shadow-md">
-      <div className="relative aspect-[3/2] overflow-hidden bg-[#EAECEE]/50">
+      <Link
+        href={`/vehicles/${vehicle.slug}`}
+        className="relative aspect-[3/2] overflow-hidden bg-[#EAECEE]/50"
+      >
         {cover ? (
           <Image
             src={cover}
@@ -36,7 +39,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             {vehicle.category.name}
           </span>
         </div>
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
@@ -82,7 +85,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
         <div className="mt-auto space-y-3 pt-6">
           <Link
-            href={`/vehicles/${vehicle.slug}`}
+            href={`/vehicles/${vehicle.slug}/book`}
             className="block w-full bg-[#E8A317] py-2 text-center text-sm font-bold text-white transition-colors hover:bg-[#d19215]"
           >
             RENT NOW

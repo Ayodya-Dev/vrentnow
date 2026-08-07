@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Container } from "@/components/layout/container";
-import { Button } from "@workspace/ui/components/button";
 import { ApiError } from "@/lib/api/public";
-import { formatPricePerDay, getVehicle, type Vehicle } from "@/lib/api/vehicles";
+import { getVehicle, listVehicles, type Vehicle } from "@/lib/api/vehicles";
+import { VehicleDetailHero } from "@/components/vehicles/vehicle-detail-hero";
+import { SimilarVehicleCard } from "@/components/vehicles/similar-vehicle-card";
+import { VehicleRentalSteps } from "@/components/vehicles/vehicle-rental-steps";
 
 async function load(slug: string): Promise<Vehicle | null> {
   try {
@@ -22,7 +23,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const vehicle = await load(slug);
-  return { title: vehicle?.name ?? "Not found" };
+  if (!vehicle) return { title: "Not found" };
+  return {
+    title: `${vehicle.brand} ${vehicle.model}`,
+    description:
+      vehicle.description ??
+      `Rent the ${vehicle.brand} ${vehicle.model} with VRentNow.`,
+  };
 }
 
 export default async function VehiclePage({
@@ -34,57 +41,74 @@ export default async function VehiclePage({
   const vehicle = await load(slug);
   if (!vehicle) notFound();
 
+  const similarPage = await listVehicles({
+    categoryId: vehicle.categoryId,
+    limit: 6,
+  });
+  const similar = similarPage.items
+    .filter((v) => v.id !== vehicle.id)
+    .slice(0, 3);
+
   return (
-    <Container className="max-w-3xl py-16">
-      <p className="mb-2 text-sm font-medium tracking-wide text-muted-foreground uppercase">
-        {vehicle.category.name}
-      </p>
-      <h1 className="mb-4 font-heading text-4xl font-semibold tracking-tight text-balance">
-        {vehicle.name}
-      </h1>
-      <p className="mb-8 text-2xl font-semibold">
-        {formatPricePerDay(vehicle.pricePerDay)}
-        <span className="text-base font-normal text-muted-foreground"> / day</span>
-      </p>
+    <>
+      <div className="border-b border-[#DFE1E4] bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+          <Link
+            href="/vehicles"
+            className="text-xs font-bold tracking-[0.14em] text-[#1D1F23] uppercase transition-colors hover:text-[#E8A317]"
+          >
+            ← Back to vehicles
+          </Link>
+          <nav
+            aria-label="Breadcrumb"
+            className="text-xs font-medium tracking-[0.12em] text-[#6B7280] uppercase"
+          >
+            <Link href="/vehicles" className="hover:text-[#1D1F23]">
+              Catalog
+            </Link>
+            <span className="mx-2">/</span>
+            <span className="font-bold text-[#1D1F23]">
+              {vehicle.brand} {vehicle.model}
+            </span>
+          </nav>
+        </div>
+      </div>
 
-      <dl className="mb-8 grid gap-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-sm text-muted-foreground">Brand</dt>
-          <dd className="font-medium">{vehicle.brand}</dd>
+      <section className="bg-white py-10 md:py-14">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <VehicleDetailHero vehicle={vehicle} />
         </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">Model</dt>
-          <dd className="font-medium">{vehicle.model}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">Year</dt>
-          <dd className="font-medium">{vehicle.year}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">Seats</dt>
-          <dd className="font-medium">{vehicle.seats}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">Fuel</dt>
-          <dd className="font-medium">{vehicle.fuel}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted-foreground">Transmission</dt>
-          <dd className="font-medium">{vehicle.transmission}</dd>
-        </div>
-      </dl>
+      </section>
 
-      {vehicle.description ? (
-        <p className="mb-10 text-lg leading-relaxed text-pretty text-muted-foreground">
-          {vehicle.description}
-        </p>
+      {similar.length > 0 ? (
+        <section className="bg-[#1D1F23] py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="font-heading text-3xl font-bold text-white md:text-4xl">
+                  Similar Vehicles
+                </h2>
+                <p className="mt-2 text-sm text-white/60">
+                  Explore other options in the {vehicle.category.name} collection.
+                </p>
+              </div>
+              <Link
+                href="/vehicles"
+                className="text-xs font-bold tracking-[0.16em] text-[#E8A317] uppercase transition-colors hover:text-white"
+              >
+                View all vehicles →
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {similar.map((v) => (
+                <SimilarVehicleCard key={v.id} vehicle={v} />
+              ))}
+            </div>
+          </div>
+        </section>
       ) : null}
 
-      <div className="flex gap-3">
-        <Button render={<Link href="/vehicles" />} variant="outline">
-          Back to vehicles
-        </Button>
-      </div>
-    </Container>
+      <VehicleRentalSteps />
+    </>
   );
 }

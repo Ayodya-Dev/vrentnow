@@ -14,6 +14,6 @@ import { VehiclesRepository } from './vehicles.repository';
   imports: [PrismaModule, AuditModule, CategoriesModule, FilesModule],
   controllers: [VehiclesController, AdminVehiclesController],
   providers: [VehiclesService, VehiclesRepository],
-  exports: [VehiclesService],
+  exports: [VehiclesService, VehiclesRepository],
 })
 export class VehiclesModule {}

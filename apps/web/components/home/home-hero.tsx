@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, useScroll, useTransform } from "motion/react";
 
 const STEPS = [
@@ -20,28 +19,30 @@ export function HomeHero() {
 
   const carX = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const carY = useTransform(scrollYProgress, [0, 1], [0, 60]);
-  const carRotate = useTransform(scrollYProgress, [0, 1], [0, -2]);
 
   return (
     <section
       ref={sectionRef}
       className="relative h-[min(836px,92dvh)] w-full overflow-hidden bg-[#F6F7F9]"
     >
-      {/* Car — previous size, bottom right */}
+      {/* Car — previous size, bottom right. Serve original PNG (no optimizer)
+          so paint/glass textures stay sharp; CSS filter+transform can crush quality. */}
       <motion.div
         className="pointer-events-none absolute right-[-8%] bottom-[-6%] z-10 w-[min(92vw,720px)] sm:right-[-4%] sm:bottom-[-4%] sm:w-[min(70vw,780px)] lg:right-0 lg:bottom-[-2%] lg:w-[55%]"
-        style={{ x: carX, y: carY, rotate: carRotate }}
+        style={{ x: carX, y: carY }}
         initial={{ opacity: 0, x: 160 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/images/home/lambo.png"
           alt="Premium sports car"
           width={1400}
           height={800}
-          priority
-          className="h-auto w-full object-contain drop-shadow-[0_28px_40px_rgba(0,0,0,0.22)]"
+          className="h-auto w-full object-contain"
+          decoding="async"
+          fetchPriority="high"
         />
       </motion.div>
 

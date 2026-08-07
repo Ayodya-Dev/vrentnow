@@ -45,7 +45,13 @@ export function configureApp(app: INestApplication): void {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new CustomExceptionFilter());
 
-  app.use(helmet());
+  // cross-origin: admin/web (different ports) load image bytes from this API.
+  // Helmet's default `same-origin` CORP makes <img src="http://localhost:9000/..."> fail.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(compression());
 
   // The single source of CORS truth. An unset ALLOWED_ORIGINS denies cross-origin

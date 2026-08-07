@@ -1,17 +1,18 @@
 import {
   BadRequestException,
-  Body,
   Controller,
   Get,
   Headers,
   NotFoundException,
   Param,
   Put,
+  Req,
   Res,
+  type RawBodyRequest,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
-import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 import { StorageService } from './storage.service';
 
 /**
@@ -39,11 +40,12 @@ export class FilesLocalController {
   @Put('*key')
   async upload(
     @Param('key') key: string | string[],
-    @Body() body: Buffer,
+    @Req() req: RawBodyRequest<Request>,
     @Headers('content-type') contentType?: string,
   ): Promise<{ key: string }> {
     const objectKey = Array.isArray(key) ? key.join('/') : key;
-    if (!Buffer.isBuffer(body) || body.length === 0) {
+    const body = await this.readBody(req);
+    if (body.length === 0) {
       throw new BadRequestException('Empty upload body');
     }
     await this.storage.putObject(
@@ -69,5 +71,23 @@ export class FilesLocalController {
     res.setHeader('Content-Type', head.contentType);
     res.setHeader('Content-Length', head.contentLength);
     res.send(bytes);
+  }
+
+  /** Browser PUTs image bytes — Nest's JSON body parser leaves @Body() empty. */
+  private async readBody(req: RawBodyRequest<Request>): Promise<Buffer> {
+    if (Buffer.isBuffer(req.rawBody) && req.rawBody.length > 0) {
+      return req.rawBody;
+    }
+    if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      return req.body;
+    }
+    if (typeof req.body === 'string' && req.body.length > 0) {
+      return Buffer.from(req.body);
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
   }
 }

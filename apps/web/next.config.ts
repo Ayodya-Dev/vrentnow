@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@workspace/ui", "@workspace/api-client"],
 
   images: {
+    // Next 16 blocks optimizing images from private/local IPs by default (SSRF guard).
+    // Local FILES_DRIVER serves at http://localhost:9000 — allow that in development.
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: "http",
