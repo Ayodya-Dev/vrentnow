@@ -110,19 +110,21 @@ function PaintImage({
     >
       <div
         className="absolute inset-0 overflow-hidden transition-transform duration-700 ease-out hover:scale-[1.03]"
-        style={{
-          WebkitMaskImage: "url(/images/services/paint-mask.png)",
-          maskImage: "url(/images/services/paint-mask.png)",
-          WebkitMaskSize: "100% 100%",
-          maskSize: "100% 100%",
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskPosition: "center",
-          maskPosition: "center",
-          // luminance: white shows photo, black hides → brush edges
-          WebkitMaskMode: "luminance",
-          maskMode: "luminance",
-        }}
+        style={
+          {
+            WebkitMaskImage: "url(/images/services/paint-mask.png)",
+            maskImage: "url(/images/services/paint-mask.png)",
+            WebkitMaskSize: "100% 100%",
+            maskSize: "100% 100%",
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskPosition: "center",
+            maskPosition: "center",
+            // luminance: white shows photo, black hides → brush edges
+            WebkitMaskMode: "luminance",
+            maskMode: "luminance",
+          } as React.CSSProperties
+        }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
