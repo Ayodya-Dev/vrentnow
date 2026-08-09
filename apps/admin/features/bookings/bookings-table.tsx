@@ -18,11 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Pagination } from "@/components/data/pagination";
+import { StatusPill } from "@/components/status-pill";
 import {
   formatDateOnly,
   formatMoney,
@@ -33,34 +33,17 @@ import {
 
 const ANY = "__any__";
 
-function statusVariant(
-  status: string,
-): "default" | "secondary" | "outline" | "destructive" {
-  switch (status) {
-    case "PENDING":
-      return "outline";
-    case "CONFIRMED":
-      return "default";
-    case "HANDED_OVER":
-      return "secondary";
-    case "COMPLETED":
-      return "default";
-    case "CANCELLED":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-}
-
 export function BookingsTable() {
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState(ANY);
+  const [payment, setPayment] = useState(ANY);
 
   const query = {
     page,
     q: q.trim() || undefined,
     status: status === ANY ? undefined : (status as BookingStatus),
+    paid: payment === "paid" ? true : payment === "pending" ? false : undefined,
   };
 
   const { data, isPending, isError, isFetching } = useQuery({
@@ -103,6 +86,22 @@ export function BookingsTable() {
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={payment}
+          onValueChange={(v) => {
+            setPayment(v ?? ANY);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-44" aria-label="Filter by payment">
+            <SelectValue placeholder="Payment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>Any payment</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="pending">Not paid</SelectItem>
+          </SelectContent>
+        </Select>
         {isFetching ? (
           <span className="text-xs text-muted-foreground">Updating…</span>
         ) : null}
@@ -116,13 +115,14 @@ export function BookingsTable() {
             <TableHead>Dates</TableHead>
             <TableHead>Total</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Payment</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground">
+              <TableCell colSpan={7} className="text-muted-foreground">
                 No bookings yet.
               </TableCell>
             </TableRow>
@@ -141,7 +141,19 @@ export function BookingsTable() {
                 </TableCell>
                 <TableCell>{formatMoney(b.totalAmount)}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant(b.status)}>{b.status}</Badge>
+                  <StatusPill status={b.status} />
+                </TableCell>
+                <TableCell>
+                  <StatusPill
+                    status={b.payment?.status ?? "PENDING"}
+                    className={
+                      b.payment?.status === "PAID"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : b.payment?.status === "FAILED"
+                          ? "bg-red-100 text-red-700"
+                          : undefined
+                    }
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <Button render={<Link href={`/bookings/${b.id}`} />} variant="outline" size="sm">

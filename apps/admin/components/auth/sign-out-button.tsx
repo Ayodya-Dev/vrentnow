@@ -10,9 +10,9 @@ import { Button } from "@workspace/ui/components/button";
 export function SignOutButton() {
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="sm"
-      className="w-full"
+      className="w-full justify-start text-muted-foreground hover:text-foreground"
       onClick={() => signOut({ callbackUrl: "/login" })}
     >
       Sign out

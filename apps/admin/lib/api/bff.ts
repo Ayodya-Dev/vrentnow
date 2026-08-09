@@ -12,7 +12,12 @@ export async function bffFetch<T>(path: string, init?: RequestInit): Promise<T> 
     const message = (body?.message as string) ?? `Request failed (${res.status})`;
     throw new ApiError(res.status, message, body?.details);
   }
-  return (body?.data ?? body) as T;
+  // Must use `"data" in body` — `body?.data ?? body` turns a legitimate
+  // `null` payload into the whole wrapper object.
+  if (body && typeof body === "object" && "data" in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
 }
 
 /**

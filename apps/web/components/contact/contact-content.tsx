@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { Container } from "@/components/layout/container";
+import { apiFetch } from "@/lib/api/client";
 
 
 export function ContactContent() {
@@ -35,7 +36,7 @@ export function ContactContent() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !formData.email || !formData.message) {
       toast.error("Please fill in all required fields.");
@@ -43,10 +44,17 @@ export function ContactContent() {
     }
 
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await apiFetch("inquiries", {
+        method: "POST",
+        body: JSON.stringify({
+          name: formData.fullName.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || undefined,
+          subject: formData.subject.trim() || undefined,
+          message: formData.message.trim(),
+        }),
+      });
       toast.success(
         "Thank you! Your message has been sent successfully. We will get back to you within 2 hours."
       );
@@ -57,7 +65,15 @@ export function ContactContent() {
         subject: "",
         message: "",
       });
-    }, 1000);
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : "Could not send your message. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

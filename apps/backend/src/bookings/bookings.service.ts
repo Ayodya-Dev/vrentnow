@@ -12,7 +12,9 @@ import {
   VehicleStatus,
 } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import { FilesService } from '../files/files.service';
 import { MailService, type BookingMailData } from '../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import {
   PaginatedResult,
@@ -28,6 +30,21 @@ import {
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { UpdateHandoverDocsDto } from './dto/update-handover-docs.dto';
+
+export type BookingAdminView = BookingWithRelations & {
+  nicUrl: string | null;
+  licenceUrl: string | null;
+  agreementUrl: string | null;
+};
+
+/** Customer-facing booking — never exposes NIC / licence file ids or URLs. */
+export type BookingCustomerView = Omit<
+  BookingWithRelations,
+  'nicFileId' | 'licenceFileId' | 'agreementFileId'
+> & {
+  agreementUrl: string | null;
+};
 
 const SORTABLE = ['createdAt', 'pickupDate', 'returnDate', 'totalAmount'] as const;
 
@@ -52,7 +69,13 @@ export class BookingsService {
     private readonly audit: AuditService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
+    private readonly files: FilesService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  private vehicleLabel(booking: BookingWithRelations): string {
+    return `${booking.vehicle.brand} ${booking.vehicle.model}`;
+  }
 
   async create(
     dto: CreateBookingDto,
@@ -169,16 +192,27 @@ export class BookingsService {
 
     const paid = await this.findMine(id, userId);
     await this.safeSendMail('paid', paid);
+    await this.notifyBooking(
+      paid,
+      'Payment received',
+      `Your payment for ${paid.vehicle.brand} ${paid.vehicle.model} was successful.`,
+    );
     return paid;
   }
 
   async listMine(
     userId: string,
     query: ListBookingsQueryDto,
-  ): Promise<PaginatedResult<BookingWithRelations>> {
+  ): Promise<PaginatedResult<BookingCustomerView>> {
     const where: Prisma.BookingWhereInput = { userId };
     if (query.status) where.status = query.status;
-    return this.paginate(where, query);
+    const page = await this.paginate(where, query);
+    return {
+      ...page,
+      items: await Promise.all(
+        page.items.map((booking) => this.toCustomerView(booking)),
+      ),
+    };
   }
 
   async findMine(id: string, userId: string): Promise<BookingWithRelations> {
@@ -188,6 +222,14 @@ export class BookingsService {
       throw new ForbiddenException('Not your booking');
     }
     return booking;
+  }
+
+  async findMineForCustomer(
+    id: string,
+    userId: string,
+  ): Promise<BookingCustomerView> {
+    const booking = await this.findMine(id, userId);
+    return this.toCustomerView(booking);
   }
 
   async cancelMine(
@@ -219,6 +261,12 @@ export class BookingsService {
     if (query.status) where.status = query.status;
     if (query.vehicleId) where.vehicleId = query.vehicleId;
     if (query.userId) where.userId = query.userId;
+    if (query.paid === true) {
+      where.payment = { is: { status: 'PAID' } };
+    } else if (query.paid === false) {
+      // isNot also matches bookings whose payment row is missing entirely.
+      where.payment = { isNot: { status: 'PAID' } };
+    }
     if (query.q?.trim()) {
       const q = query.q.trim();
       where.OR = [
@@ -238,11 +286,94 @@ export class BookingsService {
     return booking;
   }
 
+  async findByIdForAdmin(id: string): Promise<BookingAdminView> {
+    const booking = await this.findById(id);
+    return this.toAdminView(booking);
+  }
+
+  /** Record an offline payment (cash / bank transfer taken at the office). */
+  async markPaidByAdmin(id: string, actorId: string): Promise<BookingAdminView> {
+    const booking = await this.findById(id);
+    if (!booking.payment) {
+      throw new BadRequestException('No payment on this booking');
+    }
+    if (booking.payment.status === 'PAID') {
+      throw new BadRequestException('Payment is already marked as paid');
+    }
+    if (booking.status === BookingStatus.CANCELLED) {
+      throw new BadRequestException('Cannot mark a cancelled booking as paid');
+    }
+
+    const transactionId = `manual-${Date.now()}`;
+    await this.repo.markPaymentPaid(booking.id, transactionId);
+
+    await this.audit.record({
+      actorId,
+      action: 'bookings.payment.manual',
+      entity: 'Payment',
+      entityId: booking.payment.id,
+      meta: { provider: booking.paymentMethod, transactionId },
+    });
+
+    const paid = await this.findById(id);
+    await this.safeSendMail('paid', paid);
+    await this.notifyBooking(
+      paid,
+      'Payment received',
+      `Your payment for ${paid.vehicle.brand} ${paid.vehicle.model} was recorded.`,
+    );
+    return this.toAdminView(paid);
+  }
+
+  async updateHandoverDocs(
+    id: string,
+    dto: UpdateHandoverDocsDto,
+    actorId: string,
+  ): Promise<BookingAdminView> {
+    const booking = await this.findById(id);
+    if (
+      booking.status !== BookingStatus.CONFIRMED &&
+      booking.status !== BookingStatus.HANDED_OVER &&
+      booking.status !== BookingStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        'Handover documents can only be attached to confirmed or later bookings',
+      );
+    }
+
+    const data: Prisma.BookingUncheckedUpdateInput = {};
+    if (dto.nicFileId !== undefined) {
+      await this.assertReadyFile(dto.nicFileId);
+      data.nicFileId = dto.nicFileId || null;
+    }
+    if (dto.licenceFileId !== undefined) {
+      await this.assertReadyFile(dto.licenceFileId);
+      data.licenceFileId = dto.licenceFileId || null;
+    }
+    if (dto.agreementFileId !== undefined) {
+      await this.assertReadyFile(dto.agreementFileId);
+      data.agreementFileId = dto.agreementFileId || null;
+    }
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No handover document fields provided');
+    }
+
+    const updated = await this.repo.update(booking.id, data);
+    await this.audit.record({
+      actorId,
+      action: 'bookings.handover_docs',
+      entity: 'Booking',
+      entityId: booking.id,
+      meta: data,
+    });
+    return this.toAdminView(updated);
+  }
+
   async updateStatus(
     id: string,
     dto: UpdateBookingStatusDto,
     actorId: string,
-  ): Promise<BookingWithRelations> {
+  ): Promise<BookingAdminView> {
     const booking = await this.findById(id);
     const allowed = ALLOWED_TRANSITIONS[booking.status];
     if (!allowed.includes(dto.status)) {
@@ -256,12 +387,20 @@ export class BookingsService {
     ) {
       throw new BadRequestException('Cancel reason is required');
     }
-    return this.applyStatus(
+    if (dto.status === BookingStatus.HANDED_OVER) {
+      if (!booking.nicFileId || !booking.licenceFileId) {
+        throw new BadRequestException(
+          'Upload NIC and driving licence photos before marking handed over',
+        );
+      }
+    }
+    const updated = await this.applyStatus(
       booking,
       dto.status,
       actorId,
       dto.cancelReason?.trim(),
     );
+    return this.toAdminView(updated);
   }
 
   private async applyStatus(
@@ -303,13 +442,81 @@ export class BookingsService {
 
     if (next === BookingStatus.CONFIRMED) {
       await this.safeSendMail('confirmed', updated);
+      await this.notifyBooking(
+        updated,
+        'Booking confirmed',
+        `Your ${updated.vehicle.brand} ${updated.vehicle.model} booking is confirmed.`,
+      );
+    } else if (next === BookingStatus.HANDED_OVER) {
+      await this.notifyBooking(
+        updated,
+        'Vehicle handed over',
+        `Enjoy your ${updated.vehicle.brand} ${updated.vehicle.model}. Drive safe.`,
+      );
     } else if (next === BookingStatus.CANCELLED) {
       await this.safeSendMail('cancelled', updated);
+      await this.notifyBooking(
+        updated,
+        'Booking cancelled',
+        `Your ${updated.vehicle.brand} ${updated.vehicle.model} booking was cancelled.`,
+      );
     } else if (next === BookingStatus.COMPLETED) {
       await this.safeSendMail('completed', updated);
+      await this.notifyBooking(
+        updated,
+        'Rental completed',
+        `Thanks for renting with VRentNow. You can leave a review on your booking.`,
+      );
     }
 
     return updated;
+  }
+
+  private async notifyBooking(
+    booking: BookingWithRelations,
+    title: string,
+    message: string,
+  ): Promise<void> {
+    await this.notifications.notify(booking.userId, title, message);
+  }
+
+  private async assertReadyFile(fileId: string): Promise<void> {
+    if (!fileId) return;
+    await this.files.getWithUrl(fileId);
+  }
+
+  private async resolveUrl(fileId: string | null): Promise<string | null> {
+    if (!fileId) return null;
+    try {
+      const asset = await this.files.getWithUrl(fileId);
+      return asset.accessUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  private async toAdminView(
+    booking: BookingWithRelations,
+  ): Promise<BookingAdminView> {
+    const [nicUrl, licenceUrl, agreementUrl] = await Promise.all([
+      this.resolveUrl(booking.nicFileId),
+      this.resolveUrl(booking.licenceFileId),
+      this.resolveUrl(booking.agreementFileId),
+    ]);
+    return { ...booking, nicUrl, licenceUrl, agreementUrl };
+  }
+
+  private async toCustomerView(
+    booking: BookingWithRelations,
+  ): Promise<BookingCustomerView> {
+    const {
+      nicFileId: _n,
+      licenceFileId: _l,
+      agreementFileId: _a,
+      ...rest
+    } = booking;
+    const agreementUrl = await this.resolveUrl(booking.agreementFileId);
+    return { ...rest, agreementUrl };
   }
 
   private bookingMailData(booking: BookingWithRelations): BookingMailData {

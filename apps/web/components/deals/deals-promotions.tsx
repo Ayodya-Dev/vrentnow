@@ -8,63 +8,22 @@ import {
   IconArrowRight,
 } from "@tabler/icons-react";
 import { Container } from "@/components/layout/container";
+import type { DealPromotion } from "@/lib/api/deals";
 
-export interface Promotion {
-  id: string;
-  badge: string;
-  image: string;
-  title: string;
-  discount: string;
-  description: string;
-  validUntil: string;
-  code: string;
-}
-
-const PROMOTIONS: Promotion[] = [
-  {
-    id: "summer-special",
-    badge: "LIMITED TIME",
-    image: "/images/deals/summer.png",
-    title: "Summer Special",
-    discount: "25% OFF",
-    description:
-      "Experience the ultimate summer road trip with our convertible fleet. Perfect for coastal drives and sunny getaways.",
-    validUntil: "Valid until Aug 31, 2024",
-    code: "summer",
-  },
-  {
-    id: "weekend-getaway",
-    badge: "POPULAR",
-    image: "/images/deals/weekend.png",
-    title: "Weekend Getaway",
-    discount: "15% OFF",
-    description:
-      "Escape the city with our rugged SUV collection. Includes unlimited mileage for all weekend trips.",
-    validUntil: "Valid until Dec 15, 2024",
-    code: "weekend",
-  },
-  {
-    id: "long-term-rental",
-    badge: "BEST VALUE",
-    image: "/images/deals/longterm.png",
-    title: "Long Term Rental",
-    discount: "Save $200",
-    description:
-      "Monthly rentals designed for business travelers and digital nomads. Professional maintenance included.",
-    validUntil: "Valid until Ongoing",
-    code: "longterm",
-  },
-];
+export type Promotion = DealPromotion;
 
 interface DealsPromotionsProps {
+  promotions: Promotion[];
   onClaimOffer: (promotion: Promotion) => void;
 }
 
-export function DealsPromotions({ onClaimOffer }: DealsPromotionsProps) {
+export function DealsPromotions({
+  promotions,
+  onClaimOffer,
+}: DealsPromotionsProps) {
   return (
     <section id="featured-promotions" className="bg-[#F6F7F9] py-16 sm:py-20">
       <Container>
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#1D1F23]">
@@ -87,79 +46,80 @@ export function DealsPromotions({ onClaimOffer }: DealsPromotionsProps) {
           </button>
         </div>
 
-        {/* 3 Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {PROMOTIONS.map((promo) => (
-            <div
-              key={promo.id}
-              className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-200/80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-            >
-              {/* Image Container */}
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100">
-                <Image
-                  src={promo.image}
-                  alt={promo.title}
-                  fill
-                  className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
+        {promotions.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center text-sm text-[#6B7280]">
+            No active deals right now. Check back soon.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {promotions.map((promo) => (
+              <div
+                key={promo.id}
+                className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-200/80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+              >
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100">
+                  <Image
+                    src={promo.image}
+                    alt={promo.title}
+                    fill
+                    className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                    unoptimized={promo.image.startsWith("http")}
+                  />
 
-                {/* Top-Left Badge */}
-                <div className="absolute top-4 left-4 z-10">
-                  <span className="rounded-md bg-[#E8A317] px-2.5 py-1 text-[11px] font-bold text-white uppercase tracking-wider shadow-md">
-                    {promo.badge}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div className="flex flex-1 flex-col p-6">
-                {/* Header row: Title + Discount */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <h3 className="font-heading text-xl font-bold text-[#1D1F23]">
-                    {promo.title}
-                  </h3>
-                  <span className="font-heading text-lg font-bold text-[#E8A317] shrink-0">
-                    {promo.discount}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <p className="text-xs leading-relaxed text-[#6B7280] mb-6 flex-1">
-                  {promo.description}
-                </p>
-
-                {/* Validity & Code info */}
-                <div className="flex items-center gap-4 text-xs text-[#6B7280] border-t border-gray-100 pt-4 mb-6">
-                  <div className="flex items-center gap-1.5">
-                    <IconCalendar className="size-3.5 text-gray-400" />
-                    <span>{promo.validUntil}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <IconTag className="size-3.5 text-gray-400" />
-                    <span>{promo.code}</span>
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="rounded-md bg-[#E8A317] px-2.5 py-1 text-[11px] font-bold text-white uppercase tracking-wider shadow-md">
+                      {promo.badge}
+                    </span>
                   </div>
                 </div>
 
-                {/* Footer Buttons */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onClaimOffer(promo)}
-                    className="flex-1 rounded-lg bg-[#E8A317] py-2.5 px-4 text-xs sm:text-sm font-semibold text-white transition-all hover:bg-[#D49213] active:scale-[0.99] cursor-pointer text-center shadow-sm"
-                  >
-                    Claim Offer
-                  </button>
-                  <button
-                    onClick={() => onClaimOffer(promo)}
-                    className="flex size-10 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 hover:text-black cursor-pointer shrink-0"
-                    aria-label={`Claim ${promo.title}`}
-                  >
-                    <IconChevronRight className="size-4" />
-                  </button>
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="font-heading text-xl font-bold text-[#1D1F23]">
+                      {promo.title}
+                    </h3>
+                    <span className="font-heading text-lg font-bold text-[#E8A317] shrink-0">
+                      {promo.discount}
+                    </span>
+                  </div>
+
+                  <p className="text-xs leading-relaxed text-[#6B7280] mb-6 flex-1">
+                    {promo.description}
+                  </p>
+
+                  <div className="flex items-center gap-4 text-xs text-[#6B7280] border-t border-gray-100 pt-4 mb-6">
+                    <div className="flex items-center gap-1.5">
+                      <IconCalendar className="size-3.5 text-gray-400" />
+                      <span>{promo.validUntil}</span>
+                    </div>
+                    {promo.code ? (
+                      <div className="flex items-center gap-1.5">
+                        <IconTag className="size-3.5 text-gray-400" />
+                        <span>{promo.code}</span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onClaimOffer(promo)}
+                      className="flex-1 rounded-lg bg-[#E8A317] py-2.5 px-4 text-xs sm:text-sm font-semibold text-white transition-all hover:bg-[#D49213] active:scale-[0.99] cursor-pointer text-center shadow-sm"
+                    >
+                      {promo.code ? "Claim Offer" : "View Offer"}
+                    </button>
+                    <button
+                      onClick={() => onClaimOffer(promo)}
+                      className="flex size-10 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 hover:text-black cursor-pointer shrink-0"
+                      aria-label={`Open ${promo.title}`}
+                    >
+                      <IconChevronRight className="size-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Container>
     </section>
   );

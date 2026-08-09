@@ -8,6 +8,7 @@ import {
   type Vehicle,
 } from "@/lib/api/vehicles";
 import { VehicleGallery } from "./vehicle-gallery";
+import { FavouriteButton } from "@/components/favourites/favourite-button";
 
 function SpecCell({
   label,
@@ -128,9 +129,12 @@ export function VehicleDetailHero({
       </div>
 
       <div>
-        <p className="text-xs font-bold tracking-[0.18em] text-[#E8A317] uppercase">
-          {vehicle.brand} official
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-bold tracking-[0.18em] text-[#E8A317] uppercase">
+            {vehicle.brand} official
+          </p>
+          <FavouriteButton vehicleId={vehicle.id} />
+        </div>
         <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-[#1D1F23] md:text-5xl">
           {vehicle.brand} {vehicle.model}
         </h1>

@@ -40,6 +40,12 @@ export type Booking = {
   notes: string | null;
   cancelReason: string | null;
   cancelledAt: string | null;
+  nicFileId?: string | null;
+  licenceFileId?: string | null;
+  agreementFileId?: string | null;
+  nicUrl?: string | null;
+  licenceUrl?: string | null;
+  agreementUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   vehicle: BookingVehicleRef;
@@ -63,6 +69,8 @@ export type ListBookingsParams = {
   page?: number;
   q?: string;
   status?: BookingStatus;
+  userId?: string;
+  paid?: boolean;
 };
 
 export function listBookings(params: ListBookingsParams = {}): Promise<BookingPage> {
@@ -72,7 +80,15 @@ export function listBookings(params: ListBookingsParams = {}): Promise<BookingPa
   });
   if (params.q?.trim()) qs.set("q", params.q.trim());
   if (params.status) qs.set("status", params.status);
+  if (params.userId) qs.set("userId", params.userId);
+  if (params.paid !== undefined) qs.set("paid", String(params.paid));
   return bffFetch<BookingPage>(`admin/bookings?${qs}`);
+}
+
+export function markBookingPaid(id: string): Promise<Booking> {
+  return bffFetch<Booking>(`admin/bookings/${id}/payment/paid`, {
+    method: "POST",
+  });
 }
 
 export function getBooking(id: string): Promise<Booking> {
@@ -87,6 +103,20 @@ export function updateBookingStatus(
   return bffFetch<Booking>(`admin/bookings/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, cancelReason }),
+  });
+}
+
+export function updateHandoverDocs(
+  id: string,
+  body: {
+    nicFileId?: string | null;
+    licenceFileId?: string | null;
+    agreementFileId?: string | null;
+  },
+): Promise<Booking> {
+  return bffFetch<Booking>(`admin/bookings/${id}/handover-docs`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
 }
 

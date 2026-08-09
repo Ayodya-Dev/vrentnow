@@ -27,9 +27,15 @@ export function ClaimOfferModal({ promotion, onClose }: ClaimOfferModalProps) {
   if (!promotion) return null;
 
   const handleCopy = () => {
+    if (!promotion.code) {
+      toast.message("This offer has no promo code");
+      return;
+    }
     navigator.clipboard.writeText(promotion.code.toUpperCase());
     setCopied(true);
-    toast.success(`Promo code "${promotion.code.toUpperCase()}" copied to clipboard!`);
+    toast.success(
+      `Promo code "${promotion.code.toUpperCase()}" copied to clipboard!`,
+    );
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -64,33 +70,38 @@ export function ClaimOfferModal({ promotion, onClose }: ClaimOfferModalProps) {
           {promotion.description}
         </p>
 
-        {/* Promo Code Box */}
-        <div className="mb-6 rounded-xl bg-[#F6F7F9] p-4 border border-dashed border-[#E8A317]">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1 text-center">
-            Your Exclusive Promo Code
-          </p>
-          <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-lg border border-gray-200">
-            <span className="font-mono text-lg font-bold tracking-widest text-[#1D1F23] uppercase">
-              {promotion.code}
-            </span>
-            <button
-              onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#E8A317] px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-[#D49213] cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <IconCheck className="size-4" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <IconCopy className="size-4" />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
+        {promotion.code ? (
+          <div className="mb-6 rounded-xl bg-[#F6F7F9] p-4 border border-dashed border-[#E8A317]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1 text-center">
+              Your Exclusive Promo Code
+            </p>
+            <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-lg border border-gray-200">
+              <span className="font-mono text-lg font-bold tracking-widest text-[#1D1F23] uppercase">
+                {promotion.code}
+              </span>
+              <button
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1.5 rounded-md bg-[#E8A317] px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-[#D49213] cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <IconCheck className="size-4" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <IconCopy className="size-4" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="mb-6 text-center text-xs text-[#6B7280]">
+            Mention this offer when you book — no promo code required.
+          </p>
+        )}
 
         {/* Action Button */}
         <div className="flex flex-col gap-2">

@@ -73,6 +73,9 @@ export function MyBookingsList() {
             >
               {b.vehicle.brand} {b.vehicle.model}
             </Link>
+            <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
+              Order ID {b.id}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {formatDateOnly(b.pickupDate)} → {formatDateOnly(b.returnDate)} ·{" "}
               {formatMoney(b.totalAmount)}

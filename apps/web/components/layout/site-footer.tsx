@@ -33,7 +33,14 @@ export function SiteFooter() {
       <Container className="max-w-7xl">
         <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
-            <span className="mb-6 block text-xl font-bold text-[#1D1F23]">{site.name}</span>
+            <Link href="/" className="mb-6 inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logo.png"
+                alt={site.name}
+                className="h-14 w-auto"
+              />
+            </Link>
             <p className="max-w-xs text-sm leading-relaxed text-[#6B7280]">
               Rent the right vehicle online — browse available cars and book in minutes.
             </p>

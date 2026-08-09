@@ -97,6 +97,53 @@ export class FilesCleanupService {
       }
     }
 
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: { deletedAt: null, imageFileIds: { hasSome: candidateIds } },
+      select: { imageFileIds: true },
+    });
+    for (const vehicle of vehicles) {
+      for (const id of vehicle.imageFileIds) {
+        if (candidateSet.has(id)) referenced.add(id);
+      }
+    }
+
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        OR: [
+          { nicFileId: { in: candidateIds } },
+          { licenceFileId: { in: candidateIds } },
+          { agreementFileId: { in: candidateIds } },
+        ],
+      },
+      select: {
+        nicFileId: true,
+        licenceFileId: true,
+        agreementFileId: true,
+      },
+    });
+    for (const booking of bookings) {
+      for (const id of [
+        booking.nicFileId,
+        booking.licenceFileId,
+        booking.agreementFileId,
+      ]) {
+        if (id && candidateSet.has(id)) referenced.add(id);
+      }
+    }
+
+    const deals = await this.prisma.deal.findMany({
+      where: {
+        deletedAt: null,
+        imageFileId: { in: candidateIds },
+      },
+      select: { imageFileId: true },
+    });
+    for (const deal of deals) {
+      if (deal.imageFileId && candidateSet.has(deal.imageFileId)) {
+        referenced.add(deal.imageFileId);
+      }
+    }
+
     return referenced;
   }
 }

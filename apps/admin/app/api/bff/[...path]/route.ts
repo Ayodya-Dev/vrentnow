@@ -49,13 +49,15 @@ async function proxy(req: NextRequest, path: string[]) {
   if ([204, 205, 304].includes(upstream.status)) {
     return new NextResponse(null, { status: upstream.status });
   }
-  const text = await upstream.text();
+  // Pass bytes through untouched — text decoding would corrupt binary
+  // responses such as PDF receipts.
+  const body = await upstream.arrayBuffer();
   const headers: Record<string, string> = {
     "content-type": upstream.headers.get("content-type") ?? "application/json",
   };
   const disposition = upstream.headers.get("content-disposition");
   if (disposition) headers["content-disposition"] = disposition;
-  return new NextResponse(text, { status: upstream.status, headers });
+  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };

@@ -11,6 +11,7 @@ import {
 import { VehicleDetailHero } from "@/components/vehicles/vehicle-detail-hero";
 import { SimilarVehicleCard } from "@/components/vehicles/similar-vehicle-card";
 import { VehicleRentalSteps } from "@/components/vehicles/vehicle-rental-steps";
+import { VehicleReviews } from "@/components/reviews/vehicle-reviews";
 
 async function load(slug: string): Promise<Vehicle | null> {
   try {
@@ -97,6 +98,9 @@ export default async function VehiclePage({
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <VehicleDetailHero vehicle={vehicle} from={from} to={to} />
+          <div className="mt-14 border-t border-[#DFE1E4] pt-12">
+            <VehicleReviews vehicleId={vehicle.id} />
+          </div>
         </div>
       </section>
 

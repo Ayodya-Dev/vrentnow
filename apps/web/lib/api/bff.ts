@@ -12,7 +12,36 @@ export async function bffFetch<T>(path: string, init?: RequestInit): Promise<T> 
     const message = (body?.message as string) ?? `Request failed (${res.status})`;
     throw new ApiError(res.status, message, body?.details);
   }
-  return (body?.data ?? body) as T;
+  // Must use `"data" in body` — `body?.data ?? body` turns a legitimate
+  // `null` payload (e.g. "no review yet") into the whole wrapper object.
+  if (body && typeof body === "object" && "data" in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
+}
+
+/**
+ * Fetch a non-JSON response through the BFF and hand it to the browser as a
+ * file. The endpoint needs the bearer token attached by the proxy, so it
+ * cannot simply be an <a href>.
+ */
+export async function bffDownload(path: string, filename: string): Promise<void> {
+  const res = await fetch(`/api/bff/${path}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, `Download failed (${res.status})`);
+  }
+
+  const url = URL.createObjectURL(await res.blob());
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 /** Upload a file directly to a presigned storage URL (not via the BFF proxy). */

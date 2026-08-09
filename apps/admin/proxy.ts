@@ -15,6 +15,9 @@ export default handler;
 
 export const config = {
   // Everything except /login itself — guarding it would redirect it to itself,
-  // forever — plus the auth API, Next internals, and static files.
-  matcher: ["/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // forever — plus the auth API, Next internals, and static assets
+  // (public/images, favicons, app icons).
+  matcher: [
+    "/((?!login|api/auth|_next/static|_next/image|images/|favicon.ico|icon.png|apple-icon.png).*)",
+  ],
 };

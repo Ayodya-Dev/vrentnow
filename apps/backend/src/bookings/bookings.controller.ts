@@ -7,8 +7,11 @@ import {
   Post,
   Query,
   Request,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -21,9 +24,11 @@ import { RequirePermissions } from '../auth/decorators/require-permissions.decor
 import { Permission } from '../types/permission.enum';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { BookingsService } from './bookings.service';
+import { ReceiptService } from './receipt.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { UpdateHandoverDocsDto } from './dto/update-handover-docs.dto';
 
 /** Customer bookings — any signed-in user; scoped to req.user.id. */
 @ApiTags('bookings')
@@ -31,7 +36,10 @@ import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'bookings', version: '1' })
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly receipts: ReceiptService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a booking for the signed-in customer' })
@@ -53,12 +61,30 @@ export class BookingsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get one of my bookings' })
+  @ApiOperation({
+    summary: 'Get one of my bookings (agreement image only — no ID docs)',
+  })
   findMine(
     @Param('id') id: string,
     @Request() req: { user: AuthenticatedUser },
   ) {
-    return this.bookings.findMine(id, req.user.id);
+    return this.bookings.findMineForCustomer(id, req.user.id);
+  }
+
+  @Get(':id/receipt')
+  @ApiOperation({ summary: 'Download the PDF payment receipt (paid bookings)' })
+  async receipt(
+    @Param('id') id: string,
+    @Request() req: { user: AuthenticatedUser },
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const booking = await this.bookings.findMine(id, req.user.id);
+    const { buffer, filename } = await this.receipts.generate(booking);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    return new StreamableFile(buffer);
   }
 
   @Post(':id/cancel')
@@ -88,7 +114,10 @@ export class BookingsController {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller({ path: 'admin/bookings', version: '1' })
 export class AdminBookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly receipts: ReceiptService,
+  ) {}
 
   @Get()
   @RequirePermissions(Permission.BOOKINGS_READ)
@@ -99,9 +128,50 @@ export class AdminBookingsController {
 
   @Get(':id')
   @RequirePermissions(Permission.BOOKINGS_READ)
-  @ApiOperation({ summary: 'Get one booking by id' })
+  @ApiOperation({ summary: 'Get one booking by id (includes handover docs)' })
   findOne(@Param('id') id: string) {
-    return this.bookings.findById(id);
+    return this.bookings.findByIdForAdmin(id);
+  }
+
+  @Post(':id/payment/paid')
+  @RequirePermissions(Permission.BOOKINGS_WRITE)
+  @ApiOperation({
+    summary: 'Mark the payment as paid (offline / cash payment)',
+  })
+  markPaid(
+    @Param('id') id: string,
+    @Request() req: { user: AuthenticatedUser },
+  ) {
+    return this.bookings.markPaidByAdmin(id, req.user.id);
+  }
+
+  @Get(':id/receipt')
+  @RequirePermissions(Permission.BOOKINGS_READ)
+  @ApiOperation({ summary: 'Download the PDF payment receipt (admin)' })
+  async receipt(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const booking = await this.bookings.findByIdForAdmin(id);
+    const { buffer, filename } = await this.receipts.generate(booking);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    return new StreamableFile(buffer);
+  }
+
+  @Patch(':id/handover-docs')
+  @RequirePermissions(Permission.BOOKINGS_WRITE)
+  @ApiOperation({
+    summary: 'Attach office-scanned NIC / licence / agreement photos',
+  })
+  updateHandoverDocs(
+    @Param('id') id: string,
+    @Body() dto: UpdateHandoverDocsDto,
+    @Request() req: { user: AuthenticatedUser },
+  ) {
+    return this.bookings.updateHandoverDocs(id, dto, req.user.id);
   }
 
   @Patch(':id/status')

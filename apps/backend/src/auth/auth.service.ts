@@ -90,7 +90,8 @@ export class AuthService {
       'If an account exists for that email, a password reset link is on its way.';
     const user = await this.usersService.findByEmail(email);
 
-    if (user && user.password) {
+    // Disabled accounts get the same silent reply (no enumeration / no unlock via reset).
+    if (user && user.password && !user.disabledAt) {
       const rawToken = randomBytes(32).toString('base64url');
       const tokenHash = this.hashResetToken(rawToken);
       const expiresAt = new Date(
@@ -188,6 +189,12 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthTokensResponse> {
     const existing = await this.usersService.findByEmail(loginDto.email);
 
+    if (existing?.disabledAt) {
+      throw new ForbiddenException(
+        'This account has been disabled. Contact support if you need access.',
+      );
+    }
+
     if (existing?.lockedUntil && existing.lockedUntil > new Date()) {
       const minutes = Math.max(
         1,
@@ -278,6 +285,12 @@ export class AuthService {
     const user = await this.usersService.findOrCreateSocialUser(
       this.mapExternalProfile(input),
     );
+
+    if (user.disabledAt) {
+      throw new ForbiddenException(
+        'This account has been disabled. Contact support if you need access.',
+      );
+    }
 
     return this.issueAuthTokens(user);
   }

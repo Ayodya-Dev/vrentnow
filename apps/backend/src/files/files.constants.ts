@@ -7,6 +7,10 @@ export const FILE_KINDS = [
   'document',
   'misc',
   'vehicle',
+  'deal',
+  'booking-nic',
+  'booking-licence',
+  'booking-agreement',
 ] as const;
 
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;

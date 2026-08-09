@@ -12,5 +12,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     const message = (body?.message as string) ?? `Request failed (${res.status})`;
     throw new ApiError(res.status, message, body?.details);
   }
-  return (body?.data ?? body) as T;
+  if (body && typeof body === "object" && "data" in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
 }
