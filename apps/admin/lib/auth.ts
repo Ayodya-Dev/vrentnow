@@ -7,6 +7,8 @@ import {
   revokeSession,
   type BackendTokens,
 } from "@/lib/auth-tokens";
+import { authCookieConfig } from "@/lib/auth-cookies";
+import type { Role } from "@/lib/permissions";
 
 function applyBackend(token: JWT, backend: BackendTokens): JWT {
   token.uid = backend.user.id;
@@ -21,9 +23,17 @@ function applyBackend(token: JWT, backend: BackendTokens): JWT {
   return token;
 }
 
+const STAFF_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"];
+
+function hasStaffAccess(roles: Role[]): boolean {
+  return roles.some((r) => STAFF_ROLES.includes(r));
+}
+
 const nextAuth = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Distinct from web — browsers share cookies across localhost ports.
+  cookies: authCookieConfig(),
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
@@ -33,6 +43,9 @@ const nextAuth = NextAuth({
         if (!email || !password) return null;
         const backend = await loginWithPassword(email, password);
         if (!backend) return null;
+        // Customer-only accounts (USER) can authenticate against the API but
+        // must not get an admin session — they'd only see an empty shell.
+        if (!hasStaffAccess(backend.user.roles)) return null;
         return {
           id: backend.user.id,
           name: backend.user.name,

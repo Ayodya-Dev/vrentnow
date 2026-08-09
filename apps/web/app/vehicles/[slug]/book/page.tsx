@@ -6,7 +6,7 @@ import { BookingForm } from "@/components/bookings/booking-form";
 import { SimilarVehicleCard } from "@/components/vehicles/similar-vehicle-card";
 import { VehicleRentalSteps } from "@/components/vehicles/vehicle-rental-steps";
 import { ApiError } from "@/lib/api/public";
-import { getVehicle, listVehicles } from "@/lib/api/vehicles";
+import { getVehicle, listVehicles, rentalDatesSearch } from "@/lib/api/vehicles";
 
 export const metadata: Metadata = { title: "Reserve & pay" };
 
@@ -17,16 +17,31 @@ function splitName(full?: string | null): { first: string; last: string } {
   return { first: parts[0]!, last: parts.slice(1).join(" ") };
 }
 
+function first(v: string | string[] | undefined): string | undefined {
+  if (Array.isArray(v)) return v[0];
+  return v;
+}
+
 export default async function BookVehiclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
   const { slug } = await params;
+  const sp = await searchParams;
+  const from = first(sp.from);
+  const to = first(sp.to);
+  const datesQs = rentalDatesSearch(from, to);
 
   if (!session?.user) {
-    redirect(`/login?callbackUrl=${encodeURIComponent(`/vehicles/${slug}/book`)}`);
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(
+        `/vehicles/${slug}/book${datesQs}`,
+      )}`,
+    );
   }
 
   let vehicle;
@@ -37,11 +52,13 @@ export default async function BookVehiclePage({
     throw err;
   }
 
-  const { first, last } = splitName(session.user.name);
+  const { first: firstName, last } = splitName(session.user.name);
 
   const similarPage = await listVehicles({
     categoryId: vehicle.categoryId,
     limit: 6,
+    from,
+    to,
   });
   const similar = similarPage.items
     .filter((v) => v.id !== vehicle.id)
@@ -69,9 +86,11 @@ export default async function BookVehiclePage({
             }`}
             vehicleSlug={vehicle.slug}
             pricePerDay={vehicle.pricePerDay}
-            defaultFirstName={first}
+            defaultFirstName={firstName}
             defaultLastName={last}
             defaultEmail={session.user.email ?? ""}
+            defaultPickupDate={from}
+            defaultReturnDate={to}
           />
         </div>
       </section>
@@ -90,7 +109,7 @@ export default async function BookVehiclePage({
                 </p>
               </div>
               <Link
-                href="/vehicles"
+                href={from && to ? `/vehicles${datesQs}` : "/vehicles"}
                 className="inline-flex items-center justify-center border border-white/30 px-5 py-2.5 text-xs font-bold tracking-[0.14em] text-white uppercase transition-colors hover:border-white hover:bg-white/5"
               >
                 View all vehicles
@@ -98,7 +117,12 @@ export default async function BookVehiclePage({
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {similar.map((v) => (
-                <SimilarVehicleCard key={v.id} vehicle={v} />
+                <SimilarVehicleCard
+                  key={v.id}
+                  vehicle={v}
+                  from={from}
+                  to={to}
+                />
               ))}
             </div>
           </div>

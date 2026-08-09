@@ -49,6 +49,8 @@ export default async function VehiclesPage({
   const maxPrice = first(sp.maxPrice) ? Number(first(sp.maxPrice)) : undefined;
   const sortBy = first(sp.sortBy);
   const order = (first(sp.order) as "asc" | "desc" | undefined) ?? undefined;
+  const from = first(sp.from);
+  const to = first(sp.to);
 
   const [{ items, meta }, categoriesPage] = await Promise.all([
     listVehicles({
@@ -63,6 +65,8 @@ export default async function VehiclesPage({
       seatsMin: Number.isFinite(seatsMin) ? seatsMin : undefined,
       minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+      from,
+      to,
       sortBy,
       order,
     }),
@@ -87,8 +91,6 @@ export default async function VehiclesPage({
     if (maxPrice != null && Number.isFinite(maxPrice)) {
       params.set("maxPrice", String(maxPrice));
     }
-    const from = first(sp.from);
-    const to = first(sp.to);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     if (sortBy) params.set("sortBy", sortBy);
@@ -146,7 +148,9 @@ export default async function VehiclesPage({
               transmission ||
               seats ||
               seatsMin ||
-              maxPrice) && (
+              maxPrice ||
+              from ||
+              to) && (
               <Link
                 href="/vehicles"
                 className="text-sm font-bold text-[#6B7280] hover:text-[#1D1F23]"
@@ -175,7 +179,12 @@ export default async function VehiclesPage({
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {items.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  from={from}
+                  to={to}
+                />
               ))}
             </div>
           )}

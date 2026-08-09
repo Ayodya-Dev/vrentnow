@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ApiError } from "@/lib/api/public";
-import { getVehicle, listVehicles, type Vehicle } from "@/lib/api/vehicles";
+import {
+  getVehicle,
+  listVehicles,
+  rentalDatesSearch,
+  type Vehicle,
+} from "@/lib/api/vehicles";
 import { VehicleDetailHero } from "@/components/vehicles/vehicle-detail-hero";
 import { SimilarVehicleCard } from "@/components/vehicles/similar-vehicle-card";
 import { VehicleRentalSteps } from "@/components/vehicles/vehicle-rental-steps";
@@ -14,6 +19,11 @@ async function load(slug: string): Promise<Vehicle | null> {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
+}
+
+function first(v: string | string[] | undefined): string | undefined {
+  if (Array.isArray(v)) return v[0];
+  return v;
 }
 
 export async function generateMetadata({
@@ -34,16 +44,26 @@ export async function generateMetadata({
 
 export default async function VehiclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const from = first(sp.from);
+  const to = first(sp.to);
+  const datesQs = rentalDatesSearch(from, to);
+  const vehiclesHref = from && to ? `/vehicles${datesQs}` : "/vehicles";
+
   const vehicle = await load(slug);
   if (!vehicle) notFound();
 
   const similarPage = await listVehicles({
     categoryId: vehicle.categoryId,
     limit: 6,
+    from,
+    to,
   });
   const similar = similarPage.items
     .filter((v) => v.id !== vehicle.id)
@@ -54,7 +74,7 @@ export default async function VehiclePage({
       <div className="border-b border-[#DFE1E4] bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <Link
-            href="/vehicles"
+            href={vehiclesHref}
             className="text-xs font-bold tracking-[0.14em] text-[#1D1F23] uppercase transition-colors hover:text-[#E8A317]"
           >
             ← Back to vehicles
@@ -63,7 +83,7 @@ export default async function VehiclePage({
             aria-label="Breadcrumb"
             className="text-xs font-medium tracking-[0.12em] text-[#6B7280] uppercase"
           >
-            <Link href="/vehicles" className="hover:text-[#1D1F23]">
+            <Link href={vehiclesHref} className="hover:text-[#1D1F23]">
               Catalog
             </Link>
             <span className="mx-2">/</span>
@@ -76,7 +96,7 @@ export default async function VehiclePage({
 
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <VehicleDetailHero vehicle={vehicle} />
+          <VehicleDetailHero vehicle={vehicle} from={from} to={to} />
         </div>
       </section>
 
@@ -93,7 +113,7 @@ export default async function VehiclePage({
                 </p>
               </div>
               <Link
-                href="/vehicles"
+                href={vehiclesHref}
                 className="text-xs font-bold tracking-[0.16em] text-[#E8A317] uppercase transition-colors hover:text-white"
               >
                 View all vehicles →
@@ -101,7 +121,12 @@ export default async function VehiclePage({
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {similar.map((v) => (
-                <SimilarVehicleCard key={v.id} vehicle={v} />
+                <SimilarVehicleCard
+                  key={v.id}
+                  vehicle={v}
+                  from={from}
+                  to={to}
+                />
               ))}
             </div>
           </div>

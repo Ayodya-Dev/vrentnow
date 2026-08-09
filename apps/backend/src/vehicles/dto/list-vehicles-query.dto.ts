@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { FuelType, TransmissionType, VehicleStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsDateString,
   IsEnum,
   IsInt,
   IsNumber,
@@ -78,4 +79,20 @@ export class ListVehiclesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true')
   includeUnavailable?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Rental start (YYYY-MM-DD). Must be sent with `to` — excludes vehicles with overlapping active bookings.',
+  })
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Rental end (YYYY-MM-DD). Must be sent with `from` — excludes vehicles with overlapping active bookings.',
+  })
+  @IsOptional()
+  @IsDateString()
+  to?: string;
 }

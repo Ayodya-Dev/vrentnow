@@ -2,14 +2,17 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
   Prisma,
   VehicleStatus,
 } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import { MailService, type BookingMailData } from '../mail/mail.service';
 import { VehiclesRepository } from '../vehicles/vehicles.repository';
 import {
   PaginatedResult,
@@ -41,10 +44,14 @@ const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     private readonly repo: BookingsRepository,
     private readonly vehicles: VehiclesRepository,
     private readonly audit: AuditService,
+    private readonly mail: MailService,
+    private readonly config: ConfigService,
   ) {}
 
   async create(
@@ -160,7 +167,9 @@ export class BookingsService {
       meta: { provider: booking.paymentMethod, transactionId },
     });
 
-    return this.findMine(id, userId);
+    const paid = await this.findMine(id, userId);
+    await this.safeSendMail('paid', paid);
+    return paid;
   }
 
   async listMine(
@@ -292,7 +301,62 @@ export class BookingsService {
       meta: { from: booking.status, to: next },
     });
 
+    if (next === BookingStatus.CONFIRMED) {
+      await this.safeSendMail('confirmed', updated);
+    } else if (next === BookingStatus.CANCELLED) {
+      await this.safeSendMail('cancelled', updated);
+    } else if (next === BookingStatus.COMPLETED) {
+      await this.safeSendMail('completed', updated);
+    }
+
     return updated;
+  }
+
+  private bookingMailData(booking: BookingWithRelations): BookingMailData {
+    const webUrl = (
+      this.config.get<string>('APP_WEB_URL') ?? 'http://localhost:3000'
+    ).replace(/\/$/, '');
+    const amount = Number(booking.totalAmount);
+    const totalAmount = Number.isFinite(amount)
+      ? new Intl.NumberFormat('en-LK', {
+          style: 'currency',
+          currency: 'LKR',
+          maximumFractionDigits: 0,
+        }).format(amount)
+      : String(booking.totalAmount);
+
+    return {
+      name: booking.firstName || booking.user.username,
+      bookingId: booking.id,
+      vehicleName: `${booking.vehicle.brand} ${booking.vehicle.model}`,
+      pickupDate: booking.pickupDate.toISOString().slice(0, 10),
+      returnDate: booking.returnDate.toISOString().slice(0, 10),
+      totalAmount,
+      bookingUrl: `${webUrl}/bookings/${booking.id}`,
+      pickupLocation: booking.pickupLocation,
+      cancelReason: booking.cancelReason ?? undefined,
+    };
+  }
+
+  private async safeSendMail(
+    kind: 'paid' | 'confirmed' | 'cancelled' | 'completed',
+    booking: BookingWithRelations,
+  ): Promise<void> {
+    const to = booking.email;
+    const data = this.bookingMailData(booking);
+    try {
+      if (kind === 'paid') await this.mail.sendBookingPaid(to, data);
+      else if (kind === 'confirmed')
+        await this.mail.sendBookingConfirmed(to, data);
+      else if (kind === 'cancelled')
+        await this.mail.sendBookingCancelled(to, data);
+      else await this.mail.sendBookingCompleted(to, data);
+    } catch (err) {
+      this.logger.error(
+        `Failed to send booking-${kind} email for ${booking.id}`,
+        err as Error,
+      );
+    }
   }
 
   private async paginate(

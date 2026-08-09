@@ -1,0 +1,21 @@
+<h1
+  style='margin:0 0 16px;font-family:Georgia,serif;font-size:24px;color:#8D153A;'
+>Payment received</h1>
+<p style='margin:0 0 16px;line-height:1.6;'>Hi {{name}},</p>
+<p style='margin:0 0 16px;line-height:1.6;'>We received your payment for booking
+  <strong>{{bookingId}}</strong>. Your rental is paid and waiting for staff
+  confirmation.</p>
+<p style='margin:0 0 8px;line-height:1.6;'><strong>Vehicle:</strong>
+  {{vehicleName}}</p>
+<p style='margin:0 0 8px;line-height:1.6;'><strong>Dates:</strong>
+  {{pickupDate}} → {{returnDate}}</p>
+<p style='margin:0 0 24px;line-height:1.6;'><strong>Amount paid:</strong>
+  {{totalAmount}}</p>
+<p style='margin:0 0 28px;'>
+  <a
+    href='{{{bookingUrl}}}'
+    style='display:inline-block;background:#EF971A;color:#ffffff;text-decoration:none;padding:14px 28px;font-weight:600;'
+  >View booking</a>
+</p>
+<p style='margin:0;line-height:1.6;font-size:13px;color:#666;'>Thank you for
+  choosing {{appName}}.</p>

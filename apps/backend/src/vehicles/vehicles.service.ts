@@ -22,6 +22,8 @@ import {
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { ListVehiclesQueryDto } from './dto/list-vehicles-query.dto';
+import { ACTIVE_BOOKING_STATUSES } from '../bookings/active-booking-statuses';
+import { parseDateOnly } from '../bookings/booking-dates';
 
 export type VehiclePublic = VehicleWithCategory & { imageUrls: string[] };
 
@@ -213,7 +215,7 @@ export class VehiclesService {
     return this.paginate(where, query);
   }
 
-  listAvailable(
+  async listAvailable(
     query: ListVehiclesQueryDto,
   ): Promise<PaginatedResult<VehiclePublic>> {
     const where: Prisma.VehicleWhereInput = {
@@ -221,7 +223,46 @@ export class VehiclesService {
       status: VehicleStatus.AVAILABLE,
     };
     this.applyFilters(where, query);
+    this.applyAvailabilityDates(where, query);
     return this.paginate(where, query);
+  }
+
+  /** Public catalogue only — exclude vehicles booked for the requested range. */
+  private applyAvailabilityDates(
+    where: Prisma.VehicleWhereInput,
+    query: ListVehiclesQueryDto,
+  ): void {
+    const hasFrom = Boolean(query.from);
+    const hasTo = Boolean(query.to);
+    if (!hasFrom && !hasTo) return;
+    if (!hasFrom || !hasTo) {
+      throw new BadRequestException(
+        'Both from and to dates are required for availability filtering',
+      );
+    }
+
+    let pickupDate: Date;
+    let returnDate: Date;
+    try {
+      pickupDate = parseDateOnly(query.from!);
+      returnDate = parseDateOnly(query.to!);
+    } catch {
+      throw new BadRequestException('Invalid from or to date');
+    }
+
+    if (returnDate < pickupDate) {
+      throw new BadRequestException(
+        'to date must be on or after from date',
+      );
+    }
+
+    where.bookings = {
+      none: {
+        status: { in: ACTIVE_BOOKING_STATUSES },
+        pickupDate: { lte: returnDate },
+        returnDate: { gte: pickupDate },
+      },
+    };
   }
 
   private applyFilters(

@@ -1,0 +1,23 @@
+<h1
+  style='margin:0 0 16px;font-family:Georgia,serif;font-size:24px;color:#8D153A;'
+>Booking cancelled</h1>
+<p style='margin:0 0 16px;line-height:1.6;'>Hi {{name}},</p>
+<p style='margin:0 0 16px;line-height:1.6;'>Your booking
+  <strong>{{bookingId}}</strong>
+  has been cancelled.</p>
+<p style='margin:0 0 8px;line-height:1.6;'><strong>Vehicle:</strong>
+  {{vehicleName}}</p>
+<p style='margin:0 0 8px;line-height:1.6;'><strong>Dates:</strong>
+  {{pickupDate}} → {{returnDate}}</p>
+{{#if cancelReason}}
+  <p style='margin:0 0 24px;line-height:1.6;'><strong>Reason:</strong>
+    {{cancelReason}}</p>
+{{/if}}
+<p style='margin:0 0 28px;'>
+  <a
+    href='{{{bookingUrl}}}'
+    style='display:inline-block;background:#EF971A;color:#ffffff;text-decoration:none;padding:14px 28px;font-weight:600;'
+  >View booking</a>
+</p>
+<p style='margin:0;line-height:1.6;font-size:13px;color:#666;'>If this was a
+  mistake, browse the fleet again and make a new reservation.</p>

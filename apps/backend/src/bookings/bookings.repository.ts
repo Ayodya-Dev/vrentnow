@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BookingStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ACTIVE_BOOKING_STATUSES } from './active-booking-statuses';
 
 export type BookingWithRelations = Prisma.BookingGetPayload<{
   include: {
@@ -21,12 +22,6 @@ export type BookingWithRelations = Prisma.BookingGetPayload<{
     payment: true;
   };
 }>;
-
-const ACTIVE_STATUSES: BookingStatus[] = [
-  BookingStatus.PENDING,
-  BookingStatus.CONFIRMED,
-  BookingStatus.HANDED_OVER,
-];
 
 @Injectable()
 export class BookingsRepository {
@@ -126,7 +121,7 @@ export class BookingsRepository {
   }): Promise<number> {
     const where: Prisma.BookingWhereInput = {
       vehicleId: params.vehicleId,
-      status: { in: ACTIVE_STATUSES },
+      status: { in: ACTIVE_BOOKING_STATUSES },
       pickupDate: { lte: params.returnDate },
       returnDate: { gte: params.pickupDate },
     };
@@ -140,7 +135,7 @@ export class BookingsRepository {
     return this.prisma.booking.count({
       where: {
         vehicleId,
-        status: { in: ACTIVE_STATUSES },
+        status: { in: ACTIVE_BOOKING_STATUSES },
       },
     });
   }

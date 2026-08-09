@@ -44,9 +44,19 @@ export type ListVehiclesParams = {
   seatsMin?: number;
   minPrice?: number;
   maxPrice?: number;
+  /** Rental start YYYY-MM-DD — must be sent with `to`. */
+  from?: string;
+  /** Rental end YYYY-MM-DD — must be sent with `from`. */
+  to?: string;
   sortBy?: string;
   order?: "asc" | "desc";
 };
+
+/** Query string for carrying rental dates into detail/book links. */
+export function rentalDatesSearch(from?: string, to?: string): string {
+  if (!from || !to) return "";
+  return `?${new URLSearchParams({ from, to }).toString()}`;
+}
 
 export function listVehicles(params: ListVehiclesParams = {}): Promise<VehiclePage> {
   const {
@@ -61,6 +71,8 @@ export function listVehicles(params: ListVehiclesParams = {}): Promise<VehiclePa
     seatsMin,
     minPrice,
     maxPrice,
+    from,
+    to,
     sortBy,
     order,
   } = params;
@@ -78,6 +90,8 @@ export function listVehicles(params: ListVehiclesParams = {}): Promise<VehiclePa
       seatsMin: seatsMin ?? undefined,
       minPrice: minPrice ?? undefined,
       maxPrice: maxPrice ?? undefined,
+      from: from || undefined,
+      to: to || undefined,
       sortBy: sortBy || undefined,
       order: order || undefined,
     },

@@ -44,7 +44,8 @@ function ThemeHotkey() {
         return;
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // Some IME / autofill key events omit `key` — guard before calling methods.
+      if (event.key?.toLowerCase() !== "d") {
         return;
       }
 

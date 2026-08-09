@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { env } from "@/lib/env";
-import { usesSecureCookies } from "@/lib/secure-cookies";
+import {
+  sessionTokenCookieName,
+  usesSecureCookies,
+} from "@/lib/secure-cookies";
 
 async function proxy(req: NextRequest, path: string[]) {
-  // Must tell getToken() whether the session cookie is `__Secure-` prefixed,
-  // otherwise on an HTTPS deploy it looks for the wrong cookie name + salt and
-  // returns null → a spurious 401. See lib/secure-cookies.ts.
+  // Must tell getToken() the app-specific cookie name + whether it is
+  // `__Secure-` prefixed. See lib/secure-cookies.ts / lib/auth-cookies.ts.
+  const secureCookie = usesSecureCookies(req);
+  const cookieName = sessionTokenCookieName(req);
   const token = await getToken({
     req,
     secret: env.AUTH_SECRET,
-    secureCookie: usesSecureCookies(req),
+    secureCookie,
+    cookieName,
+    salt: cookieName,
   });
   if (!token?.accessToken) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

@@ -23,6 +23,28 @@ import { formatPricePerDay } from "@/lib/api/vehicles";
 const fieldClass =
   "h-11 rounded-lg border-[#DFE1E4] bg-[#F6F7F9] text-[#1D1F23] shadow-none focus-visible:border-[#E8A317] focus-visible:ring-[#E8A317]/25";
 
+function parseYmdLocal(ymd: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.slice(0, 10));
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const d = new Date(year, month - 1, day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function rangeFromDefaults(
+  pickup?: string,
+  returnDate?: string,
+): DateRange | undefined {
+  if (!pickup) return undefined;
+  const from = parseYmdLocal(pickup);
+  if (!from) return undefined;
+  const to = returnDate ? parseYmdLocal(returnDate) : from;
+  return { from, to: to ?? from };
+}
+
 type Props = {
   vehicleId: string;
   vehicleName: string;
@@ -31,6 +53,8 @@ type Props = {
   defaultFirstName?: string;
   defaultLastName?: string;
   defaultEmail?: string;
+  defaultPickupDate?: string;
+  defaultReturnDate?: string;
 };
 
 export function BookingForm({
@@ -41,13 +65,17 @@ export function BookingForm({
   defaultFirstName = "",
   defaultLastName = "",
   defaultEmail = "",
+  defaultPickupDate,
+  defaultReturnDate,
 }: Props) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [lastName, setLastName] = useState(defaultLastName);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState(defaultEmail);
-  const [range, setRange] = useState<DateRange | undefined>();
+  const [range, setRange] = useState<DateRange | undefined>(() =>
+    rangeFromDefaults(defaultPickupDate, defaultReturnDate),
+  );
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentProvider>("KOKOPAY");
   const [busy, setBusy] = useState(false);

@@ -5,18 +5,28 @@ import {
   formatPricePerDay,
   formatStatus,
   formatTransmission,
+  rentalDatesSearch,
   vehicleCoverUrl,
   type Vehicle,
 } from "@/lib/api/vehicles";
 
-export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+export function VehicleCard({
+  vehicle,
+  from,
+  to,
+}: {
+  vehicle: Vehicle;
+  from?: string;
+  to?: string;
+}) {
   const cover = vehicleCoverUrl(vehicle);
   const status = formatStatus(vehicle.status);
+  const datesQs = rentalDatesSearch(from, to);
 
   return (
     <article className="group flex flex-col overflow-hidden bg-white shadow-md">
       <Link
-        href={`/vehicles/${vehicle.slug}`}
+        href={`/vehicles/${vehicle.slug}${datesQs}`}
         className="relative aspect-[3/2] overflow-hidden bg-[#EAECEE]/50"
       >
         {cover ? (
@@ -85,7 +95,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
         <div className="mt-auto space-y-3 pt-6">
           <Link
-            href={`/vehicles/${vehicle.slug}/book`}
+            href={`/vehicles/${vehicle.slug}/book${datesQs}`}
             className="block w-full bg-[#E8A317] py-2 text-center text-sm font-bold text-white transition-colors hover:bg-[#d19215]"
           >
             RENT NOW
@@ -100,7 +110,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
               </span>
             </div>
             <Link
-              href={`/vehicles/${vehicle.slug}`}
+              href={`/vehicles/${vehicle.slug}${datesQs}`}
               className="text-sm font-bold transition-colors hover:text-[#E8A317]"
             >
               DETAILS
