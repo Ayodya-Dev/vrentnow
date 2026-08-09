@@ -12,6 +12,7 @@ import {
   type GoogleProfileLike,
   type GoogleAccountLike,
 } from "@/lib/auth-tokens";
+import { authCookieConfig } from "@/lib/auth-cookies";
 
 function applyBackend(token: JWT, backend: BackendTokens): JWT {
   token.uid = backend.user.id;
@@ -42,6 +43,8 @@ const googleProvider =
 const nextAuth = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Distinct from admin — browsers share cookies across localhost ports.
+  cookies: authCookieConfig(),
   providers: [
     ...googleProvider,
     Credentials({

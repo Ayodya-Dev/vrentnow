@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,15 +9,19 @@ import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   cancelMyBooking,
+  downloadReceipt,
   formatDateOnly,
   formatMoney,
   getMyBooking,
   PAYMENT_OPTIONS,
 } from "@/lib/api/bookings";
+import { BookingReviewForm } from "@/components/reviews/booking-review-form";
+import { BookingDamageReport } from "@/components/damage/booking-damage-report";
 
 export function BookingDetailView({ id }: { id: string }) {
   const router = useRouter();
   const qc = useQueryClient();
+  const [downloading, setDownloading] = useState(false);
   const { data, isPending, isError } = useQuery({
     queryKey: ["my-bookings", id],
     queryFn: () => getMyBooking(id),
@@ -38,8 +43,22 @@ export function BookingDetailView({ id }: { id: string }) {
     return <p className="text-destructive">Could not load this booking.</p>;
   }
 
+  async function getReceipt() {
+    setDownloading(true);
+    try {
+      await downloadReceipt(id);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not download the receipt",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const canCancel = data.status === "PENDING" || data.status === "CONFIRMED";
   const needsPay = data.payment?.status !== "PAID" && data.status !== "CANCELLED";
+  const isPaid = data.payment?.status === "PAID";
   const provider =
     PAYMENT_OPTIONS.find((o) => o.value === data.paymentMethod)?.label ??
     data.paymentMethod;
@@ -53,6 +72,9 @@ export function BookingDetailView({ id }: { id: string }) {
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
           {data.vehicle.brand} {data.vehicle.model}
         </h1>
+        <p className="mt-2 font-mono text-xs tracking-wide text-muted-foreground">
+          Order ID {data.id}
+        </p>
       </div>
 
       <dl className="grid gap-4 sm:grid-cols-2">
@@ -101,6 +123,42 @@ export function BookingDetailView({ id }: { id: string }) {
         ) : null}
       </dl>
 
+      <BookingReviewForm
+        bookingId={id}
+        canReview={data.status === "COMPLETED"}
+      />
+
+      <BookingDamageReport
+        bookingId={id}
+        canReport={
+          data.status === "HANDED_OVER" || data.status === "COMPLETED"
+        }
+      />
+
+      {data.agreementUrl ? (
+        <div className="space-y-3 border-t pt-6">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">Rental agreement</h2>
+            <p className="text-sm text-muted-foreground">
+              Photo of the signed agreement from handover.
+            </p>
+          </div>
+          <a
+            href={data.agreementUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block max-w-lg"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={data.agreementUrl}
+              alt="Rental agreement"
+              className="w-full rounded-md border object-contain"
+            />
+          </a>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-3">
         <Button render={<Link href="/bookings" />} variant="outline">
           All bookings
@@ -111,6 +169,11 @@ export function BookingDetailView({ id }: { id: string }) {
             className="bg-[#E8A317] text-white hover:bg-[#d19215]"
           >
             Pay now
+          </Button>
+        ) : null}
+        {isPaid ? (
+          <Button variant="outline" onClick={getReceipt} disabled={downloading}>
+            {downloading ? "Preparing…" : "Download receipt (PDF)"}
           </Button>
         ) : null}
         {canCancel ? (

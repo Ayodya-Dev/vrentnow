@@ -7,8 +7,10 @@ import { DealsPromotions, type Promotion } from "./deals-promotions";
 import { DealsNewsletter } from "./deals-newsletter";
 import { ClaimOfferModal, LoyaltyModal } from "./deals-modal";
 
-export function DealsContent() {
-  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+export function DealsContent({ promotions }: { promotions: Promotion[] }) {
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(
+    null,
+  );
   const [isLoyaltyOpen, setIsLoyaltyOpen] = useState(false);
 
   const handleBrowseOffers = () => {
@@ -20,22 +22,20 @@ export function DealsContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F6F7F9]">
-      {/* Hero Section */}
       <DealsHero
         onBrowseOffers={handleBrowseOffers}
         onJoinLoyalty={() => setIsLoyaltyOpen(true)}
       />
 
-      {/* Feature Highlights Bar */}
       <DealsFeatures />
 
-      {/* Featured Promotions Grid */}
-      <DealsPromotions onClaimOffer={(promo) => setSelectedPromotion(promo)} />
+      <DealsPromotions
+        promotions={promotions}
+        onClaimOffer={(promo) => setSelectedPromotion(promo)}
+      />
 
-      {/* Newsletter Banner */}
       <DealsNewsletter />
 
-      {/* Modals */}
       <ClaimOfferModal
         promotion={selectedPromotion}
         onClose={() => setSelectedPromotion(null)}

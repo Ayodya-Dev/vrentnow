@@ -1,19 +1,23 @@
-import { auth } from "@/lib/auth";
+import type { Metadata } from "next";
+import { StatsOverview } from "@/features/dashboard/stats-overview";
 
-export default async function DashboardPage() {
-  const session = await auth();
+export const metadata: Metadata = { title: "Dashboard" };
 
+export default function DashboardPage() {
   return (
-    <div className="space-y-3">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">Dashboard</h1>
-      <p className="text-muted-foreground">
-        Signed in as {session?.user?.email} ({(session?.user?.roles ?? []).join(", ") || "no roles"}
-        ).
-      </p>
-      <p className="text-sm text-muted-foreground">
-        The nav on the left only shows what your roles permit. Start a real feature by copying{" "}
-        <code className="rounded bg-muted px-1 py-0.5">features/items</code>.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Dashboard / Overview
+        </p>
+        <h1 className="mt-1 font-heading text-3xl font-bold tracking-tight">
+          Dashboard
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Overview of your rental operations.
+        </p>
+      </div>
+      <StatsOverview />
     </div>
   );
 }

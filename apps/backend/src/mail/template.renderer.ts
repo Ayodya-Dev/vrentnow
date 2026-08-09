@@ -5,11 +5,21 @@ import * as path from 'path';
 import * as Handlebars from 'handlebars';
 
 /** Add a name here, then a `<name>.hbs` + `<name>.text.hbs` pair under ./templates. */
-export type TemplateName = 'password-reset' | 'password-changed';
+export type TemplateName =
+  | 'password-reset'
+  | 'password-changed'
+  | 'booking-paid'
+  | 'booking-confirmed'
+  | 'booking-cancelled'
+  | 'booking-completed';
 
 const SUBJECTS: Record<TemplateName, string> = {
   'password-reset': 'Reset your password',
   'password-changed': 'Your password was changed',
+  'booking-paid': 'Payment received',
+  'booking-confirmed': 'Booking confirmed',
+  'booking-cancelled': 'Booking cancelled',
+  'booking-completed': 'Rental completed',
 };
 
 @Injectable()

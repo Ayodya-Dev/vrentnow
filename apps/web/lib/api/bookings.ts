@@ -1,4 +1,4 @@
-import { bffFetch } from "@/lib/api/bff";
+import { bffDownload, bffFetch } from "@/lib/api/bff";
 
 export type BookingStatus =
   | "PENDING"
@@ -37,6 +37,8 @@ export type Booking = {
   cancelReason: string | null;
   cancelledAt: string | null;
   createdAt: string;
+  /** Signed/public URL for the rental agreement photo only (never NIC/licence). */
+  agreementUrl?: string | null;
   vehicle: {
     id: string;
     name: string;
@@ -114,6 +116,10 @@ export function cancelMyBooking(id: string, reason?: string): Promise<Booking> {
 
 export function completeSandboxPayment(id: string): Promise<Booking> {
   return bffFetch<Booking>(`bookings/${id}/pay/sandbox`, { method: "POST" });
+}
+
+export function downloadReceipt(id: string): Promise<void> {
+  return bffDownload(`bookings/${id}/receipt`, `vrentnow-receipt-${id}.pdf`);
 }
 
 export function formatMoney(amount: string | number): string {

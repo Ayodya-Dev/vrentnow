@@ -8,13 +8,20 @@ export interface UploadedImage {
   url: string;
 }
 
+export type UploadVisibility = "public" | "private";
+
 /**
  * Three-step presigned upload:
  *   1. POST /v1/admin/files/uploads (via BFF)  -> { assetId, uploadUrl }
  *   2. PUT the bytes directly to `uploadUrl`   (NOT through the BFF)
- *   3. POST /v1/admin/files/:id/confirm (via BFF) -> the READY asset (public `url`)
+ *   3. POST /v1/admin/files/:id/confirm (via BFF) -> the READY asset
+ *      (`url` is set for public assets; private assets resolve via signed access URLs)
  */
-export async function uploadImage(file: File, kind = "item"): Promise<UploadedImage> {
+export async function uploadImage(
+  file: File,
+  kind = "item",
+  visibility: UploadVisibility = "public",
+): Promise<UploadedImage> {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     throw new Error(`Unsupported image type: ${file.type || "unknown"}. Use JPEG, PNG, or WebP.`);
   }
@@ -25,7 +32,7 @@ export async function uploadImage(file: File, kind = "item"): Promise<UploadedIm
   const ticket = await bffFetch<{ assetId: string; uploadUrl: string }>("admin/files/uploads", {
     method: "POST",
     body: JSON.stringify({
-      visibility: "public",
+      visibility,
       kind,
       filename: file.name,
       contentType: file.type,

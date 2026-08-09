@@ -65,6 +65,12 @@ export function AccountMenu({ user }: { user: SessionUser | null }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/account" />}>My account</DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/bookings" />}>My bookings</DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/favourites" />}>
+          Favourites
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/notifications" />}>
+          Notifications
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <SignOutButton />
       </DropdownMenuContent>

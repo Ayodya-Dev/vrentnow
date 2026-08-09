@@ -40,5 +40,8 @@ export async function getPublic<T>(path: string, opts: PublicOpts = {}): Promise
     const message = (body?.message as string) ?? `Request failed (${res.status})`;
     throw new ApiError(res.status, message, body?.details);
   }
-  return (body?.data ?? body) as T;
+  if (body && typeof body === "object" && "data" in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
 }

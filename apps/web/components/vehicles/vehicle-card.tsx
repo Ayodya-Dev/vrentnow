@@ -5,41 +5,57 @@ import {
   formatPricePerDay,
   formatStatus,
   formatTransmission,
+  rentalDatesSearch,
   vehicleCoverUrl,
   type Vehicle,
 } from "@/lib/api/vehicles";
+import { FavouriteButton } from "@/components/favourites/favourite-button";
 
-export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+export function VehicleCard({
+  vehicle,
+  from,
+  to,
+}: {
+  vehicle: Vehicle;
+  from?: string;
+  to?: string;
+}) {
   const cover = vehicleCoverUrl(vehicle);
   const status = formatStatus(vehicle.status);
+  const datesQs = rentalDatesSearch(from, to);
 
   return (
     <article className="group flex flex-col overflow-hidden bg-white shadow-md">
-      <Link
-        href={`/vehicles/${vehicle.slug}`}
-        className="relative aspect-[3/2] overflow-hidden bg-[#EAECEE]/50"
-      >
-        {cover ? (
-          <Image
-            src={cover}
-            alt={`${vehicle.brand} ${vehicle.model}`}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#EAECEE] to-[#DFE1E4] px-4">
-            <span className="text-center text-sm font-medium text-[#6B7280]">
-              {vehicle.brand} {vehicle.model}
-            </span>
-          </div>
-        )}
-        <div className="absolute top-4 left-4">
+      <div className="relative aspect-[3/2] overflow-hidden bg-[#EAECEE]/50">
+        <Link
+          href={`/vehicles/${vehicle.slug}${datesQs}`}
+          className="absolute inset-0"
+        >
+          {cover ? (
+            <Image
+              src={cover}
+              alt={`${vehicle.brand} ${vehicle.model}`}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#EAECEE] to-[#DFE1E4] px-4">
+              <span className="text-center text-sm font-medium text-[#6B7280]">
+                {vehicle.brand} {vehicle.model}
+              </span>
+            </div>
+          )}
+        </Link>
+        <div className="pointer-events-none absolute top-4 left-4">
           <span className="rounded-full border border-[#DFE1E4] bg-white/80 px-2 py-1 text-[10px] font-bold tracking-wider uppercase backdrop-blur-md">
             {vehicle.category.name}
           </span>
         </div>
-      </Link>
+        <div className="absolute top-3 right-3 z-10">
+          <FavouriteButton vehicleId={vehicle.id} />
+        </div>
+      </div>
 
       <div className="flex flex-1 flex-col p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
@@ -85,7 +101,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
         <div className="mt-auto space-y-3 pt-6">
           <Link
-            href={`/vehicles/${vehicle.slug}/book`}
+            href={`/vehicles/${vehicle.slug}/book${datesQs}`}
             className="block w-full bg-[#E8A317] py-2 text-center text-sm font-bold text-white transition-colors hover:bg-[#d19215]"
           >
             RENT NOW
@@ -100,7 +116,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
               </span>
             </div>
             <Link
-              href={`/vehicles/${vehicle.slug}`}
+              href={`/vehicles/${vehicle.slug}${datesQs}`}
               className="text-sm font-bold transition-colors hover:text-[#E8A317]"
             >
               DETAILS

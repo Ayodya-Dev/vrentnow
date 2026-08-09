@@ -26,11 +26,19 @@ model User {
   /// IPs and so gets a fresh bucket from the per-(IP, email) rate limit.
   failedLoginAttempts Int                  @default(0)
   lockedUntil         DateTime?
+  /// When set, the account cannot sign in (password or OAuth). Cleared on enable.
+  disabledAt          DateTime?
   roles               UserRole[]
   accounts            Account[]
   sessions            AuthSession[]
   passwordResetTokens PasswordResetToken[]
   bookings            Booking[]
+  favourites          Favourite[]
+  reviews             Review[]
+  notifications       Notification[]
+  damageReports       DamageReport[]
+
+  @@index([disabledAt])
 }
 
 /// A linked OAuth identity (e.g. Google). The backend owns provider linking;
@@ -199,6 +207,8 @@ model Vehicle {
   updatedAt      DateTime          @updatedAt
   deletedAt      DateTime?
   bookings       Booking[]
+  favourites     Favourite[]
+  reviews        Review[]
 
   @@index([status])
   @@index([categoryId])
@@ -245,9 +255,17 @@ model Booking {
   notes          String?
   cancelReason   String?
   cancelledAt    DateTime?
+  /// Private office photo of customer NIC (admin-only).
+  nicFileId      String?
+  /// Private office photo of driving licence (admin-only).
+  licenceFileId  String?
+  /// Signed rental agreement photo — customer may view this one.
+  agreementFileId String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   payment        Payment?
+  review         Review?
+  damageReports  DamageReport[]
 
   @@index([userId])
   @@index([vehicleId])
@@ -269,4 +287,116 @@ model Payment {
 
   @@index([status])
   @@index([provider])
+}
+
+/// A vehicle saved to a customer's wishlist.
+model Favourite {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, vehicleId])
+  @@index([userId])
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// A customer review — one per completed booking. Public only when APPROVED.
+model Review {
+  id        String       @id @default(cuid())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  vehicle   Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId String
+  booking   Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String       @unique
+  /// 1–5 stars.
+  rating    Int
+  comment   String?
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([vehicleId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+/// An in-app message for a customer (booking confirmed, paid, etc.).
+model Notification {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+/// A damage / incident report filed by the customer for a booking.
+model DamageReport {
+  id          String    @id @default(cuid())
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId   String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  description String
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([resolvedAt, createdAt])
+}
+
+/// A message submitted through the public contact form.
+model Inquiry {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([isRead, createdAt])
+  @@index([deletedAt])
+}
+
+/// Marketing deal / promotion shown on the public Deals page (CMS).
+model Deal {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  badge           String?
+  description     String?
+  /// Display string for the UI, e.g. "25% OFF".
+  discountLabel   String
+  code            String?   @unique
+  imageFileId     String?
+  /// Display string, e.g. "Valid until Aug 31, 2026".
+  validUntilLabel String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  @@index([isActive, sortOrder])
+  @@index([startsAt, endsAt])
+  @@index([deletedAt])
 }

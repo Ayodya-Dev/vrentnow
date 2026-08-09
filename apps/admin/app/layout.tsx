@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter, Space_Grotesk } from "next/font/google";
 
 import "@workspace/ui/globals.css";
+import "./admin-theme.css";
 import { cn } from "@workspace/ui/lib/utils";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Providers } from "@/components/providers/providers";
@@ -11,8 +12,8 @@ const fontSans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s — Admin" },
-  description: "Groundwork admin console",
+  title: { default: "Admin", template: "%s — VRentNow Admin" },
+  description: "VRentNow admin console",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

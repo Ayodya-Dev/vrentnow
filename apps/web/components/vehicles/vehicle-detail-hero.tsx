@@ -4,9 +4,11 @@ import {
   formatFuel,
   formatPricePerDay,
   formatTransmission,
+  rentalDatesSearch,
   type Vehicle,
 } from "@/lib/api/vehicles";
 import { VehicleGallery } from "./vehicle-gallery";
+import { FavouriteButton } from "@/components/favourites/favourite-button";
 
 function SpecCell({
   label,
@@ -87,13 +89,23 @@ function brandIcon() {
   );
 }
 
-export function VehicleDetailHero({ vehicle }: { vehicle: Vehicle }) {
+export function VehicleDetailHero({
+  vehicle,
+  from,
+  to,
+}: {
+  vehicle: Vehicle;
+  from?: string;
+  to?: string;
+}) {
   const images = vehicle.imageUrls?.filter(Boolean) ?? [];
   const description =
     vehicle.description?.trim() ||
     `Experience the ${vehicle.brand} ${vehicle.model} with VRentNow — a reliable ${formatFuel(vehicle.fuel).toLowerCase()} choice with ${formatTransmission(vehicle.transmission).toLowerCase()} transmission and seating for ${vehicle.seats}. Ideal for city trips and weekend getaways, maintained to our rental-ready standard.`;
 
   const available = vehicle.status === "AVAILABLE";
+  const datesQs = rentalDatesSearch(from, to);
+  const vehiclesBackHref = from && to ? `/vehicles${datesQs}` : "/vehicles";
 
   return (
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
@@ -117,9 +129,12 @@ export function VehicleDetailHero({ vehicle }: { vehicle: Vehicle }) {
       </div>
 
       <div>
-        <p className="text-xs font-bold tracking-[0.18em] text-[#E8A317] uppercase">
-          {vehicle.brand} official
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-bold tracking-[0.18em] text-[#E8A317] uppercase">
+            {vehicle.brand} official
+          </p>
+          <FavouriteButton vehicleId={vehicle.id} />
+        </div>
         <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-[#1D1F23] md:text-5xl">
           {vehicle.brand} {vehicle.model}
         </h1>
@@ -178,13 +193,13 @@ export function VehicleDetailHero({ vehicle }: { vehicle: Vehicle }) {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href={`/vehicles/${vehicle.slug}/book`}
+            href={`/vehicles/${vehicle.slug}/book${datesQs}`}
             className="inline-flex flex-1 items-center justify-center bg-[#E8A317] px-6 py-3 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-[#d19215]"
           >
             Rent now
           </Link>
           <Link
-            href="/vehicles"
+            href={vehiclesBackHref}
             className="inline-flex flex-1 items-center justify-center border border-[#1D1F23] bg-white px-6 py-3 text-sm font-bold tracking-wide text-[#1D1F23] uppercase transition-colors hover:bg-[#F6F7F9]"
           >
             Back to vehicles

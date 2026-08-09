@@ -1,0 +1,68 @@
+/**
+ * VRentNow admin theme (Visily-inspired).
+ * Scoped to the admin app — does not change the shared UI package or web site.
+ */
+:root {
+  --background: #f6f7f9;
+  --foreground: #1d1f23;
+  --card: #ffffff;
+  --card-foreground: #1d1f23;
+  --popover: #ffffff;
+  --popover-foreground: #1d1f23;
+  --primary: #e8a317;
+  --primary-foreground: #ffffff;
+  --secondary: #fef7ec;
+  --secondary-foreground: #1d1f23;
+  --muted: #eef0f3;
+  --muted-foreground: #6b7280;
+  --accent: #fef7ec;
+  --accent-foreground: #c4890f;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #e8a317;
+  --chart-1: #e8a317;
+  --chart-2: #f0b84a;
+  --chart-3: #c4890f;
+  --chart-4: #1d1f23;
+  --chart-5: #9ca3af;
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1f23;
+  --sidebar-primary: #e8a317;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef7ec;
+  --sidebar-accent-foreground: #c4890f;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #e8a317;
+}
+
+/* Keep admin light even if a leftover .dark class exists. */
+.dark {
+  --background: #f6f7f9;
+  --foreground: #1d1f23;
+  --card: #ffffff;
+  --card-foreground: #1d1f23;
+  --popover: #ffffff;
+  --popover-foreground: #1d1f23;
+  --primary: #e8a317;
+  --primary-foreground: #ffffff;
+  --secondary: #fef7ec;
+  --secondary-foreground: #1d1f23;
+  --muted: #eef0f3;
+  --muted-foreground: #6b7280;
+  --accent: #fef7ec;
+  --accent-foreground: #c4890f;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #e8a317;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1f23;
+  --sidebar-primary: #e8a317;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef7ec;
+  --sidebar-accent-foreground: #c4890f;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #e8a317;
+}

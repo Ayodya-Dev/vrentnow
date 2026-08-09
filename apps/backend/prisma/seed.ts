@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { PrismaClient, Role } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -11,6 +14,121 @@ const prisma = new PrismaClient({ adapter });
 const DEFAULT_EMAIL = 'admin@example.com';
 const DEFAULT_USERNAME = 'admin';
 const DEFAULT_PASSWORD = 'ChangeMe123!';
+
+/** The three Featured Promotions that shipped as hardcoded UI on /deals. */
+const FEATURED_DEALS = [
+  {
+    slug: 'summer-special',
+    title: 'Summer Special',
+    badge: 'LIMITED TIME',
+    discountLabel: '25% OFF',
+    description:
+      'Experience the ultimate summer road trip with our convertible fleet. Perfect for coastal drives and sunny getaways.',
+    validUntilLabel: 'Valid until Aug 31, 2026',
+    code: 'SUMMER',
+    imageFile: 'summer.png',
+    sortOrder: 0,
+  },
+  {
+    slug: 'weekend-getaway',
+    title: 'Weekend Getaway',
+    badge: 'POPULAR',
+    discountLabel: '15% OFF',
+    description:
+      'Escape the city with our rugged SUV collection. Includes unlimited mileage for all weekend trips.',
+    validUntilLabel: 'Valid until Dec 15, 2026',
+    code: 'WEEKEND',
+    imageFile: 'weekend.png',
+    sortOrder: 1,
+  },
+  {
+    slug: 'long-term-rental',
+    title: 'Long Term Rental',
+    badge: 'BEST VALUE',
+    discountLabel: 'Save $200',
+    description:
+      'Monthly rentals designed for business travelers and digital nomads. Professional maintenance included.',
+    validUntilLabel: 'Valid until Ongoing',
+    code: 'LONGTERM',
+    imageFile: 'longterm.png',
+    sortOrder: 2,
+  },
+] as const;
+
+async function ensureDealImage(
+  filename: string,
+): Promise<string | null> {
+  const source = join(
+    __dirname,
+    '../../web/public/images/deals',
+    filename,
+  );
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(source);
+  } catch {
+    console.warn(`[seed] deal image missing: ${source}`);
+    return null;
+  }
+
+  const id = randomUUID();
+  const key = `public/deal/${id}.png`;
+  const storageRoot = process.env.LOCAL_STORAGE_DIR ?? join(__dirname, '../storage');
+  const diskPath = join(storageRoot, key);
+  await mkdir(dirname(diskPath), { recursive: true });
+  await writeFile(diskPath, bytes);
+  await writeFile(`${diskPath}.meta`, 'image/png', 'utf8');
+
+  const apiBase = (
+    process.env.APP_API_URL ??
+    process.env.API_URL ??
+    'http://localhost:9000'
+  ).replace(/\/$/, '');
+
+  const asset = await prisma.fileAsset.create({
+    data: {
+      bucket: 'local',
+      key,
+      visibility: 'public',
+      status: 'READY',
+      kind: 'deal',
+      originalName: filename,
+      mimeType: 'image/png',
+      sizeBytes: bytes.length,
+      url: `${apiBase}/v1/files/local/${key}`,
+    },
+  });
+  return asset.id;
+}
+
+async function seedFeaturedDeals() {
+  for (const deal of FEATURED_DEALS) {
+    const existing = await prisma.deal.findFirst({
+      where: { slug: deal.slug, deletedAt: null },
+    });
+    if (existing) {
+      console.log(`[seed] deal already exists: ${deal.slug}`);
+      continue;
+    }
+
+    const imageFileId = await ensureDealImage(deal.imageFile);
+    await prisma.deal.create({
+      data: {
+        title: deal.title,
+        slug: deal.slug,
+        badge: deal.badge,
+        description: deal.description,
+        discountLabel: deal.discountLabel,
+        code: deal.code,
+        validUntilLabel: deal.validUntilLabel,
+        imageFileId,
+        isActive: true,
+        sortOrder: deal.sortOrder,
+      },
+    });
+    console.log(`[seed] deal created: ${deal.slug}`);
+  }
+}
 
 async function main() {
   const email = process.env.ADMIN_EMAIL ?? DEFAULT_EMAIL;
@@ -76,6 +194,9 @@ async function main() {
   });
 
   console.log('[seed] 2 example items ready (1 published, 1 draft)');
+
+  await seedFeaturedDeals();
+  console.log('[seed] featured deals ready (Summer / Weekend / Long Term)');
 }
 
 main()

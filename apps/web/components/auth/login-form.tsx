@@ -30,14 +30,28 @@ export function LoginForm({ callbackUrl = "/account" }: { callbackUrl?: string }
     }
     setErrors({});
     setSubmitting(true);
-    const res = await signIn("credentials", { ...parsed.data, redirect: false });
-    setSubmitting(false);
-    if (res?.error) {
-      setErrors({ form: "Invalid email or password." });
-      return;
+    try {
+      const res = await signIn("credentials", { ...parsed.data, redirect: false });
+      if (res?.error) {
+        const code = res.error;
+        if (code === "CredentialsSignin") {
+          setErrors({ form: "Invalid email or password." });
+        } else if (code === "MissingCSRF" || code === "CSRF") {
+          setErrors({
+            form: "Login session expired. Clear cookies for localhost, refresh, and try again.",
+          });
+        } else {
+          setErrors({ form: `Sign-in failed (${code}). Refresh and try again.` });
+        }
+        return;
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setErrors({ form: "Could not sign in. Check that the API is running, then try again." });
+    } finally {
+      setSubmitting(false);
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   return (

@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { env } from "@/lib/env";
-import { usesSecureCookies } from "@/lib/secure-cookies";
+import {
+  sessionTokenCookieName,
+  usesSecureCookies,
+} from "@/lib/secure-cookies";
 
 async function proxy(req: NextRequest, path: string[]) {
-  // Must tell getToken() whether the session cookie is `__Secure-` prefixed,
-  // otherwise on an HTTPS deploy it looks for the wrong cookie name + salt and
-  // returns null → a spurious 401. See lib/secure-cookies.ts.
+  // Must tell getToken() the app-specific cookie name + whether it is
+  // `__Secure-` prefixed. See lib/secure-cookies.ts / lib/auth-cookies.ts.
+  const secureCookie = usesSecureCookies(req);
+  const cookieName = sessionTokenCookieName(req);
   const token = await getToken({
     req,
     secret: env.AUTH_SECRET,
-    secureCookie: usesSecureCookies(req),
+    secureCookie,
+    cookieName,
+    salt: cookieName,
   });
   if (!token?.accessToken) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -43,13 +49,15 @@ async function proxy(req: NextRequest, path: string[]) {
   if ([204, 205, 304].includes(upstream.status)) {
     return new NextResponse(null, { status: upstream.status });
   }
-  const text = await upstream.text();
+  // Pass bytes through untouched — text decoding would corrupt binary
+  // responses such as PDF receipts.
+  const body = await upstream.arrayBuffer();
   const headers: Record<string, string> = {
     "content-type": upstream.headers.get("content-type") ?? "application/json",
   };
   const disposition = upstream.headers.get("content-disposition");
   if (disposition) headers["content-disposition"] = disposition;
-  return new NextResponse(text, { status: upstream.status, headers });
+  return new NextResponse(body, { status: upstream.status, headers });
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };

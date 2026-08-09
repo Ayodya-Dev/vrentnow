@@ -1,10 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
-import { formatPricePerDay, vehicleCoverUrl, type Vehicle } from "@/lib/api/vehicles";
+import {
+  formatPricePerDay,
+  rentalDatesSearch,
+  vehicleCoverUrl,
+  type Vehicle,
+} from "@/lib/api/vehicles";
 
 /** Compact card for the dark “Similar Vehicles” strip (Visily detail). */
-export function SimilarVehicleCard({ vehicle }: { vehicle: Vehicle }) {
+export function SimilarVehicleCard({
+  vehicle,
+  from,
+  to,
+}: {
+  vehicle: Vehicle;
+  from?: string;
+  to?: string;
+}) {
   const cover = vehicleCoverUrl(vehicle);
+  const datesQs = rentalDatesSearch(from, to);
 
   return (
     <article className="flex flex-col overflow-hidden bg-white">
@@ -34,7 +48,7 @@ export function SimilarVehicleCard({ vehicle }: { vehicle: Vehicle }) {
           </p>
         </div>
         <Link
-          href={`/vehicles/${vehicle.slug}`}
+          href={`/vehicles/${vehicle.slug}${datesQs}`}
           className="mt-auto block bg-[#1D1F23] py-2.5 text-center text-xs font-bold tracking-wide text-white uppercase transition-colors hover:bg-black"
         >
           View details

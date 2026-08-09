@@ -16,6 +16,14 @@ import { ItemsModule } from './items/items.module';
 import { CategoriesModule } from './categories/categories.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CustomersModule } from './customers/customers.module';
+import { DealsModule } from './deals/deals.module';
+import { InquiriesModule } from './inquiries/inquiries.module';
+import { FavouritesModule } from './favourites/favourites.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { DamageReportsModule } from './damage-reports/damage-reports.module';
 import { MailModule } from './mail/mail.module';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { validationSchema } from './config/env.validation';
@@ -39,6 +47,14 @@ import { throttlers } from './auth/throttle.config';
     CategoriesModule,
     VehiclesModule,
     BookingsModule,
+    DashboardModule,
+    CustomersModule,
+    DealsModule,
+    InquiriesModule,
+    FavouritesModule,
+    ReviewsModule,
+    NotificationsModule,
+    DamageReportsModule,
   ],
   controllers: [AppController],
   providers: [
