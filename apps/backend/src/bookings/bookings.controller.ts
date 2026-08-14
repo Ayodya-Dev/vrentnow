@@ -99,13 +99,24 @@ export class BookingsController {
 
   @Post(':id/pay/sandbox')
   @ApiOperation({
-    summary: 'Complete sandbox payment (PayHere / KokoPay / Payzy demo)',
+    summary: 'Complete sandbox payment (KokoPay / Payzy demo only)',
   })
   paySandbox(
     @Param('id') id: string,
     @Request() req: { user: AuthenticatedUser },
   ) {
     return this.bookings.completeSandboxPayment(id, req.user.id);
+  }
+
+  @Post(':id/pay/payhere/initiate')
+  @ApiOperation({
+    summary: 'Start PayHere checkout — returns form fields + checkout URL',
+  })
+  initiatePayHere(
+    @Param('id') id: string,
+    @Request() req: { user: AuthenticatedUser },
+  ) {
+    return this.bookings.initiatePayHere(id, req.user.id);
   }
 }
 

@@ -9,6 +9,7 @@ import {
   AdminBookingsController,
   BookingsController,
 } from './bookings.controller';
+import { PayHereController } from './payhere.controller';
 import { BookingsService } from './bookings.service';
 import { BookingsRepository } from './bookings.repository';
 import { ReceiptService } from './receipt.service';
@@ -22,7 +23,7 @@ import { ReceiptService } from './receipt.service';
     VehiclesModule,
     NotificationsModule,
   ],
-  controllers: [BookingsController, AdminBookingsController],
+  controllers: [BookingsController, AdminBookingsController, PayHereController],
   providers: [BookingsService, BookingsRepository, ReceiptService],
   exports: [BookingsService],
 })
