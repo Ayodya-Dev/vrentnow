@@ -76,6 +76,17 @@ export const validationSchema = Joi.object({
   MAIL_FROM_NAME: Joi.string().optional().default('Groundwork'),
   APP_WEB_URL: Joi.string().uri().optional().default('http://localhost:3000'),
 
+  // PayHere sandbox / live. DOMAIN is the public API base (Cloudflare Tunnel URL)
+  // used only for notify_url. Return/cancel URLs use APP_WEB_URL (browser redirects).
+  PAYHERE_MERCHANT_ID: Joi.string().allow('').optional(),
+  PAYHERE_MERCHANT_SECRET: Joi.string().allow('').optional(),
+  PAYHERE_DOMAIN: Joi.string().uri().allow('').optional(),
+  PAYHERE_SANDBOX: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .optional()
+    .default(true),
+
   // Seed admin (bun run db:seed)
   ADMIN_EMAIL: Joi.string().email().optional(),
   ADMIN_USERNAME: Joi.string().optional(),

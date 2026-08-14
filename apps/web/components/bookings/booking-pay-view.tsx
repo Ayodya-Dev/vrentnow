@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@workspace/ui/components/button";
@@ -11,18 +12,39 @@ import {
   formatDateOnly,
   formatMoney,
   getMyBooking,
+  initiatePayHereCheckout,
   PAYMENT_OPTIONS,
 } from "@/lib/api/bookings";
+
+function submitPayHereForm(
+  checkoutUrl: string,
+  fields: Record<string, string>,
+) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = checkoutUrl;
+  for (const [name, value] of Object.entries(fields)) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
 
 export function BookingPayView({ id }: { id: string }) {
   const router = useRouter();
   const qc = useQueryClient();
+  const [paying, setPaying] = useState(false);
   const { data, isPending, isError } = useQuery({
     queryKey: ["my-bookings", id],
     queryFn: () => getMyBooking(id),
   });
 
-  async function pay() {
+  async function paySandbox() {
+    setPaying(true);
     try {
       await completeSandboxPayment(id);
       toast.success("Payment successful (sandbox)");
@@ -31,6 +53,20 @@ export function BookingPayView({ id }: { id: string }) {
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Payment failed");
+      setPaying(false);
+    }
+  }
+
+  async function payWithPayHere() {
+    setPaying(true);
+    try {
+      const { checkoutUrl, fields } = await initiatePayHereCheckout(id);
+      submitPayHereForm(checkoutUrl, fields);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not start PayHere checkout",
+      );
+      setPaying(false);
     }
   }
 
@@ -43,6 +79,7 @@ export function BookingPayView({ id }: { id: string }) {
     PAYMENT_OPTIONS.find((o) => o.value === data.paymentMethod) ??
     PAYMENT_OPTIONS[2]!;
   const paid = data.payment?.status === "PAID";
+  const isPayHere = data.paymentMethod === "PAYHERE";
 
   return (
     <div className="space-y-8">
@@ -96,15 +133,21 @@ export function BookingPayView({ id }: { id: string }) {
       ) : (
         <div className="space-y-4 rounded-xl border border-[#DFE1E4] bg-white p-5">
           <p className="text-sm text-[#6B7280]">
-            Academic sandbox mode — no real charge. This simulates a successful{" "}
-            {provider.label} payment.
+            {isPayHere
+              ? "You will be redirected to PayHere sandbox checkout. Use a PayHere test card to complete payment."
+              : `Academic sandbox mode — no real charge. This simulates a successful ${provider.label} payment.`}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={pay}
+              onClick={isPayHere ? payWithPayHere : paySandbox}
+              disabled={paying}
               className="bg-[#E8A317] text-white hover:bg-[#d19215]"
             >
-              Pay {formatMoney(data.totalAmount)} with {provider.label}
+              {paying
+                ? isPayHere
+                  ? "Redirecting…"
+                  : "Processing…"
+                : `Pay ${formatMoney(data.totalAmount)} with ${provider.label}`}
             </Button>
             <Button render={<Link href={`/bookings/${id}`} />} variant="outline">
               Pay later

@@ -118,6 +118,17 @@ export function completeSandboxPayment(id: string): Promise<Booking> {
   return bffFetch<Booking>(`bookings/${id}/pay/sandbox`, { method: "POST" });
 }
 
+export type PayHereCheckout = {
+  checkoutUrl: string;
+  fields: Record<string, string>;
+};
+
+export function initiatePayHereCheckout(id: string): Promise<PayHereCheckout> {
+  return bffFetch<PayHereCheckout>(`bookings/${id}/pay/payhere/initiate`, {
+    method: "POST",
+  });
+}
+
 export function downloadReceipt(id: string): Promise<void> {
   return bffDownload(`bookings/${id}/receipt`, `vrentnow-receipt-${id}.pdf`);
 }

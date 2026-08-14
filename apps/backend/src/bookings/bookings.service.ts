@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
+  PaymentProvider,
   Prisma,
   VehicleStatus,
 } from '@prisma/client';
@@ -31,6 +32,12 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { UpdateHandoverDocsDto } from './dto/update-handover-docs.dto';
+import { PayHereNotifyDto } from './dto/payhere-notify.dto';
+import {
+  buildPayHereCheckoutHash,
+  buildPayHereNotifyHash,
+  formatPayHereAmount,
+} from './payhere-hash';
 
 export type BookingAdminView = BookingWithRelations & {
   nicUrl: string | null;
@@ -169,6 +176,11 @@ export class BookingsService {
     userId: string,
   ): Promise<BookingWithRelations> {
     const booking = await this.findMine(id, userId);
+    if (booking.paymentMethod === PaymentProvider.PAYHERE) {
+      throw new BadRequestException(
+        'Use PayHere checkout for this booking (POST .../pay/payhere/initiate)',
+      );
+    }
     if (!booking.payment) {
       throw new BadRequestException('No payment on this booking');
     }
@@ -198,6 +210,168 @@ export class BookingsService {
       `Your payment for ${paid.vehicle.brand} ${paid.vehicle.model} was successful.`,
     );
     return paid;
+  }
+
+  /**
+   * Build PayHere checkout fields for a booking (sandbox or live).
+   * The browser posts these to PayHere's hosted checkout.
+   */
+  async initiatePayHere(
+    id: string,
+    userId: string,
+  ): Promise<{
+    checkoutUrl: string;
+    fields: Record<string, string>;
+  }> {
+    const merchantId = this.config.get<string>('PAYHERE_MERCHANT_ID')?.trim();
+    const merchantSecret = this.config
+      .get<string>('PAYHERE_MERCHANT_SECRET')
+      ?.trim();
+    const notifyDomain = this.config.get<string>('PAYHERE_DOMAIN')?.trim();
+    const sandbox = this.config.get<boolean>('PAYHERE_SANDBOX') !== false;
+
+    if (!merchantId || !merchantSecret) {
+      throw new BadRequestException(
+        'PayHere is not configured (PAYHERE_MERCHANT_ID / PAYHERE_MERCHANT_SECRET)',
+      );
+    }
+    if (!notifyDomain) {
+      throw new BadRequestException(
+        'PAYHERE_DOMAIN is required — run scripts/payhere-tunnel.ps1 and set the Cloudflare URL',
+      );
+    }
+
+    const booking = await this.findMine(id, userId);
+    if (booking.paymentMethod !== PaymentProvider.PAYHERE) {
+      throw new BadRequestException('This booking is not a PayHere payment');
+    }
+    if (!booking.payment) {
+      throw new BadRequestException('No payment on this booking');
+    }
+    if (booking.payment.status === 'PAID') {
+      throw new BadRequestException('This booking is already paid');
+    }
+    if (booking.status === BookingStatus.CANCELLED) {
+      throw new BadRequestException('Cannot pay a cancelled booking');
+    }
+
+    const amount = formatPayHereAmount(Number(booking.totalAmount));
+    const currency = 'LKR';
+    const orderId = booking.id;
+    const hash = buildPayHereCheckoutHash({
+      merchantId,
+      merchantSecret,
+      orderId,
+      amount,
+      currency,
+    });
+
+    const apiBase = notifyDomain.replace(/\/$/, '');
+    // All PayHere URLs must share the tunnel domain (same as payhere-node sample).
+    // Merchant secret in PayHere dashboard is tied to trycloudflare.com — not localhost.
+    const fields: Record<string, string> = {
+      sandbox: sandbox ? 'true' : 'false',
+      merchant_id: merchantId,
+      return_url: `${apiBase}/v1/payhere/return/${booking.id}`,
+      cancel_url: `${apiBase}/v1/payhere/cancel/${booking.id}`,
+      notify_url: `${apiBase}/v1/payhere/notify`,
+      first_name: booking.firstName,
+      last_name: booking.lastName,
+      email: booking.email,
+      phone: booking.phone,
+      address: booking.pickupLocation,
+      city: 'Colombo',
+      country: 'Sri Lanka',
+      order_id: orderId,
+      items: `${booking.vehicle.brand} ${booking.vehicle.model}`,
+      currency,
+      amount,
+      hash,
+    };
+
+    const checkoutUrl = sandbox
+      ? 'https://sandbox.payhere.lk/pay/checkout'
+      : 'https://www.payhere.lk/pay/checkout';
+
+    return { checkoutUrl, fields };
+  }
+
+  /** PayHere IPN — must always return 200 so PayHere does not retry forever. */
+  async handlePayHereNotify(
+    dto: PayHereNotifyDto,
+  ): Promise<{ ok: boolean; reason?: string }> {
+    const merchantId = this.config.get<string>('PAYHERE_MERCHANT_ID')?.trim();
+    const merchantSecret = this.config
+      .get<string>('PAYHERE_MERCHANT_SECRET')
+      ?.trim();
+
+    if (!merchantId || !merchantSecret) {
+      this.logger.error('PayHere notify received but merchant env is missing');
+      return { ok: false, reason: 'not_configured' };
+    }
+
+    if (dto.merchant_id !== merchantId) {
+      this.logger.warn(`PayHere notify merchant mismatch: ${dto.merchant_id}`);
+      return { ok: false, reason: 'merchant_mismatch' };
+    }
+
+    const localSig = buildPayHereNotifyHash({
+      merchantId,
+      merchantSecret,
+      orderId: dto.order_id,
+      amount: dto.payhere_amount,
+      currency: dto.payhere_currency,
+      statusCode: String(dto.status_code),
+    });
+
+    if (localSig !== dto.md5sig) {
+      this.logger.warn(`PayHere notify bad signature for ${dto.order_id}`);
+      return { ok: false, reason: 'bad_signature' };
+    }
+
+    if (String(dto.status_code) !== '2') {
+      this.logger.log(
+        `PayHere notify non-success status ${dto.status_code} for ${dto.order_id}`,
+      );
+      return { ok: false, reason: 'not_success' };
+    }
+
+    const booking = await this.repo.findById(dto.order_id);
+    if (!booking) {
+      this.logger.warn(`PayHere notify unknown order ${dto.order_id}`);
+      return { ok: false, reason: 'unknown_order' };
+    }
+    if (!booking.payment) {
+      return { ok: false, reason: 'no_payment' };
+    }
+    if (booking.payment.status === 'PAID') {
+      return { ok: true, reason: 'already_paid' };
+    }
+
+    const transactionId = dto.payment_id || `payhere-${Date.now()}`;
+    await this.repo.markPaymentPaid(booking.id, transactionId);
+
+    await this.audit.record({
+      actorId: booking.userId,
+      action: 'bookings.payment.payhere',
+      entity: 'Payment',
+      entityId: booking.payment.id,
+      meta: {
+        provider: 'PAYHERE',
+        transactionId,
+        statusCode: dto.status_code,
+      },
+    });
+
+    const paid = await this.findById(booking.id);
+    await this.safeSendMail('paid', paid);
+    await this.notifyBooking(
+      paid,
+      'Payment received',
+      `Your PayHere payment for ${paid.vehicle.brand} ${paid.vehicle.model} was successful.`,
+    );
+
+    return { ok: true };
   }
 
   async listMine(
