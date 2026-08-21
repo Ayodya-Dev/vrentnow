@@ -1,0 +1,37 @@
+/**
+ * VRentNow customer theme. Light-only — matches the hardcoded page surfaces
+ * and stays readable if a leftover .dark class is still on <html>.
+ */
+html {
+  color-scheme: light;
+}
+
+:root,
+.dark {
+  --background: #f6f7f9;
+  --foreground: #1d1f23;
+  --card: #ffffff;
+  --card-foreground: #1d1f23;
+  --popover: #ffffff;
+  --popover-foreground: #1d1f23;
+  --primary: #e8a317;
+  --primary-foreground: #ffffff;
+  --secondary: #fef7ec;
+  --secondary-foreground: #1d1f23;
+  --muted: #eef0f3;
+  --muted-foreground: #6b7280;
+  --accent: #fef7ec;
+  --accent-foreground: #c4890f;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #e8a317;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1f23;
+  --sidebar-primary: #e8a317;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef7ec;
+  --sidebar-accent-foreground: #c4890f;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #e8a317;
+}

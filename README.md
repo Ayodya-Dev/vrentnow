@@ -1,14 +1,12 @@
 <div align="center">
 
-# groundwork
+# VRentNow
 
-**A fullstack boilerplate that already works.**
-Next.js web + admin console, NestJS API, in a Turborepo monorepo.
-Auth, RBAC, audit logging, file uploads and transactional email are done — there is no domain code to delete, just one example feature to copy.
+**Online vehicle rental and booking system**
 
-[![CI](https://github.com/dfansoo/groundwork/actions/workflows/ci.yml/badge.svg)](https://github.com/dfansoo/groundwork/actions/workflows/ci.yml)
+Customer website, admin console, and REST API in one Turborepo monorepo.
 
-<br />
+[Live site](https://vrentnow.live) · [Admin](https://admin.vrentnow.live) · [GitHub](https://github.com/Ayodya-Dev/vrentnow)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
@@ -16,139 +14,336 @@ Auth, RBAC, audit logging, file uploads and transactional email are done — the
 [![NestJS](https://img.shields.io/badge/NestJS_11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma_7-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-
 [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?style=for-the-badge&logo=turborepo&logoColor=white)](https://turbo.build/)
 [![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)](https://ui.shadcn.com/)
-[![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
 </div>
 
-```bash
-gh repo create my-app --template dfansoo/groundwork --private --clone
-```
+---
 
-## Stack
+## Project overview
 
-|                                                                                                                         |                                                                                  |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| <img src="https://cdn.simpleicons.org/turborepo/EF4444" width="16" height="16" align="center" /> **Monorepo**           | Turborepo 2.9, Bun workspaces                                                    |
-| <img src="https://cdn.simpleicons.org/nextdotjs/000000/FFFFFF" width="16" height="16" align="center" /> **Web / Admin** | Next.js 16, React 19, Tailwind v4, shadcn (`base-maia`, Base UI), TanStack Query |
-| <img src="https://cdn.simpleicons.org/nestjs/E0234E" width="16" height="16" align="center" /> **API**                   | NestJS 11, Prisma 7, PostgreSQL                                                  |
-| <img src="https://cdn.simpleicons.org/auth0/EB5424" width="16" height="16" align="center" /> **Auth**                   | NestJS issues ES256 JWTs; NextAuth v5 is a session shim                          |
-| <img src="https://cdn.simpleicons.org/vitest/6E9F18" width="16" height="16" align="center" /> **Tests**                 | Vitest (web/admin), Jest (backend), Playwright (e2e, against the real API)       |
+VRentNow is a full-stack web platform for vehicle rental businesses. Customers browse vehicles, book by date, pay online, track booking status, and download receipts. Administrators manage the fleet, confirm bookings, upload handover documents, and supervise customers, payments, and audit activity.
 
-## What's already built
+The system replaces informal booking (phone, WhatsApp, spreadsheets) with one database, a live availability check, a clear booking workflow, and digital handover records.
 
-- **Auth** — email/password + Google OAuth, ES256 JWTs, refresh rotation, session listing and revocation, password reset, password change
-- **RBAC** — five roles, seven permissions, enforced by guards on every route, not merely hidden in the UI
-- **Brute-force defence** — rate limits per IP _and_ per (IP, account), plus an account lockout after ten consecutive failures, which is the only part that survives an attacker rotating IPs
-- **Admin console** — items, staff (grant and revoke roles) and the audit log, all paginated and permission-gated
-- **Audit log** — every mutation recorded against the acting user, filterable, with a CSV export
-- **File uploads** — presigned uploads, an orphan sweep, and a disk driver, so you need **no AWS account to run it**
-- **Transactional email** — Handlebars templates; renders to the server log in dev, Brevo in prod
-- **Typed API client** — generated from the backend's OpenAPI contract, so frontend types _cannot_ drift from the API
-- **Docker** — three images, built from the repo root, built on every CI run so they cannot rot
-- **Tests that mean something** — the e2e and integration suites run against the real backend and a real database, not a mock
+This repository is the SEN4002 Software Design & Development (PORT1) team project. The live deployment is [https://vrentnow.live](https://vrentnow.live).
 
-## Layout
+---
+
+## Live URLs
+
+| App | URL | Port (local) |
+| --- | --- | --- |
+| Customer website | https://vrentnow.live | `http://localhost:3000` |
+| Admin console | https://admin.vrentnow.live | `http://localhost:3001` |
+| REST API + Swagger | `/v1` on the API host | `http://localhost:9000` · docs at `/doc` |
+
+---
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Monorepo | Turborepo, Bun workspaces |
+| Customer web | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, TanStack Query |
+| Admin console | Next.js 16 (separate app) |
+| Backend API | NestJS 11, TypeScript |
+| Database / ORM | PostgreSQL, Prisma 7 |
+| Auth | NestJS ES256 JWTs (access + refresh), bcrypt, NextAuth v5 session cookie, optional Google OAuth |
+| Authorisation | RBAC — permissions enforced on API routes |
+| Payments | PayHere (live/sandbox), KokoPay, Payzy |
+| Email | Brevo HTTP API in production; log transport in development |
+| Files | Local disk in development; Amazon S3 in production (uploads and database backups) |
+| PDF receipts | Generated on the API (PDFKit) |
+| Testing | Playwright (e2e), Jest (backend), Vitest (frontends) |
+| Deployment | Docker on a Contabo Linux VPS, Cloudflare DNS + HTTPS, Spaceship domain, GitHub auto-deploy on `main` |
+
+**Package manager:** [Bun](https://bun.sh/) (`bun install`, `bun dev`, `bun run build`). Do not use npm for this repo.
+
+---
+
+## Repository layout
 
 ```
 apps/
-  web/       public client        :3000
-  admin/     admin console        :3001
-  backend/   API + Prisma         :9000   (Swagger at /doc)
+  web/       Customer website          :3000
+  admin/     Admin console             :3001
+  backend/   NestJS API + Prisma       :9000   (Swagger at /doc)
 packages/
-  ui/                @workspace/ui — shared shadcn components + theme
-  api-client/        typed client, generated from the API's OpenAPI contract
-  eslint-config/     shared lint config
-  typescript-config/ shared tsconfigs
+  ui/                Shared UI components and theme
+  api-client/        Typed client generated from the API OpenAPI contract
+  eslint-config/     Shared ESLint config
+  typescript-config/ Shared TypeScript configs
 ```
 
-## Quick start
+The backend is the identity source of truth (users, password hashing, JWTs, sessions). NextAuth in the frontends holds those tokens in an encrypted cookie and optionally runs the Google OAuth redirect.
 
-You need **Bun 1.3+**, **Node 20+**, and **PostgreSQL** (natively, or `docker compose up -d db` from the repo root).
+---
+
+## Features
+
+### Customer website
+
+- Register, login, logout, password reset / change, optional Google sign-in
+- Browse and filter vehicles (type, dates, availability)
+- Vehicle detail, deals, contact / inquiries
+- Create a booking (pickup/return dates, cost breakdown)
+- Pay with PayHere, KokoPay, or Payzy
+- Download PDF receipt
+- Track status: Pending → Confirmed → Handed Over → Completed (or Cancelled)
+- Booking history, favourites, notifications
+- Submit a review after a completed rental
+- Submit a damage report
+- View handover documents after collection
+
+### Admin console
+
+- Dashboard statistics
+- Vehicles and categories (CRUD)
+- Bookings: confirm, cancel, update status
+- Upload handover documents (NIC/passport, driving licence, signed agreement)
+- Customers (activate / suspend)
+- Deals and inquiries
+- Staff roles (RBAC)
+- Audit log (mutations recorded against the acting user)
+
+### Security (already in the API)
+
+- Passwords hashed with bcrypt
+- ES256 JWT access tokens + refresh rotation
+- Account lockout after ten consecutive failed logins
+- Rate limiting (IP and credentials)
+- HTTPS in production (Cloudflare)
+- Encrypted NextAuth session cookies
+- Permissions checked on the server, not only in the UI
+
+---
+
+## Booking status flow
+
+```
+Pending → Confirmed → Handed Over → Completed
+                    ↘ Cancelled
+```
+
+| Status | Meaning |
+| --- | --- |
+| Pending | Booking created, waiting for admin confirmation |
+| Confirmed | Admin approved — customer may collect the vehicle |
+| Handed Over | Physical handover done; documents uploaded |
+| Completed | Vehicle returned |
+| Cancelled | Booking cancelled |
+
+---
+
+## In scope / out of scope
+
+**In scope:** vehicle search and availability, online booking workflow, PayHere / KokoPay / Payzy, PDF receipts, admin confirmation and handover uploads, customer accounts, favourites, notifications, reviews, damage reports, RBAC, transactional email, responsive web UI.
+
+**Out of scope:** native iOS/Android apps, GPS / live vehicle tracking, multi-company / franchise tenancy, third-party insurance APIs, multi-currency.
+
+---
+
+## Getting started (developers)
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) **1.3+**
+- [Node.js](https://nodejs.org/) **20+** (required by Next.js)
+- [PostgreSQL](https://www.postgresql.org/) **16** (local install, or Docker)
+- [Git](https://git-scm.com/)
+- On Windows, `bun run keys:generate` needs **Git Bash** or **WSL** (it runs a bash script)
+
+### 1. Clone
+
+```bash
+git clone https://github.com/Ayodya-Dev/vrentnow.git
+cd vrentnow
+```
+
+### 2. Install dependencies
+
+From the **repository root**:
 
 ```bash
 bun install
+```
 
-# 1. Backend
+### 3. Start PostgreSQL
+
+Either run Postgres yourself, or from the repo root:
+
+```bash
+docker compose up -d db
+```
+
+Default connection (see `apps/backend/.env.example`):
+
+```
+postgresql://postgres:postgres@localhost:5432/groundwork
+```
+
+If port 5432 is already in use, set `POSTGRES_PORT` and update `DATABASE_URL` to match.
+
+### 4. Backend environment and database
+
+```bash
 cd apps/backend
-cp .env.example .env                       # set DATABASE_URL, and DATA_ENCRYPTION_KEY (openssl rand -base64 32)
-bun run keys:generate                      # EC P-256 keypair for signing tokens
-bun run db:migrate                         # create the schema
-bun run db:seed                            # SUPER_ADMIN + two example items
-
-# 2. Frontends
-cd ../web   && cp .env.example .env.local  # set AUTH_SECRET (openssl rand -base64 32)
-cd ../admin && cp .env.example .env.local  # set AUTH_SECRET
-
-# 3. Run everything
-cd ../.. && bun dev
+cp .env.example .env
 ```
 
-Sign in at <http://localhost:3001> with the seeded admin — `admin@example.com` / `ChangeMe123!` by default (`ADMIN_EMAIL` / `ADMIN_PASSWORD` in `apps/backend/.env`).
+Set at least:
 
-**No cloud account is needed.** `FILES_DRIVER=local` writes uploads to disk, and `MAIL_TRANSPORT=log` renders emails into the server log. Switch to `s3` and `brevo` for production.
+- `DATABASE_URL`
+- `DATA_ENCRYPTION_KEY` — `openssl rand -base64 32`
+- `AUTH_EXCHANGE_SECRET` — same value as in web and admin
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` (defaults: `admin@example.com` / `ChangeMe123!`)
 
-## The whole stack in Docker
+Then:
 
 ```bash
-cp .env.example .env                       # three secrets: openssl rand -base64 32
-cd apps/backend && bun run keys:generate   # mounted into the container, never baked in
-cd .. && docker compose up --build
+bun run keys:generate    # EC P-256 keypair for JWT signing (apps/backend/keys/)
+bun run db:migrate       # create the schema
+bun run db:seed          # SUPER_ADMIN + sample data
 ```
 
-Every image builds from the **repo root** — a Bun workspace only resolves from there:
+Leave `FILES_DRIVER=local` and `MAIL_TRANSPORT=log` for local work. No AWS or Brevo account is required to run the app.
+
+### 5. Frontend environment
 
 ```bash
-docker build -f apps/backend/Dockerfile -t groundwork-backend .
+cd apps/web
+cp .env.example .env.local
+# set AUTH_SECRET (openssl rand -base64 32)
+# set AUTH_EXCHANGE_SECRET to match the backend
+# AUTH_URL=http://localhost:3000
+
+cd ../admin
+cp .env.example .env.local
+# different AUTH_SECRET from web
+# same AUTH_EXCHANGE_SECRET as the backend
+# AUTH_URL=http://localhost:3001
 ```
 
-The signing keys are mounted, not copied in. A key inside an image layer is a key held by everyone who can pull the image, and rebuilding it would invalidate every live token. Migrations and seeding are opt-in (`RUN_MIGRATIONS`, `RUN_SEED`) so that N replicas do not race the same schema change on boot.
+Google OAuth (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`) is optional. Email/password login works without it.
 
-## Starting a real feature
+### 6. Run everything
 
-`items` is the example, threaded end to end so every layer is visible at once:
+From the **repository root**:
 
-| Layer     | Path                                                                   |
-| --------- | ---------------------------------------------------------------------- |
-| API       | `apps/backend/src/items/` + the `Item` model in `prisma/schema.prisma` |
-| Admin UI  | `apps/admin/features/items/` + `app/(dashboard)/items/`                |
-| Public UI | `apps/web/app/items/`                                                  |
+```bash
+bun dev
+```
 
-Copy those, rename, delete the originals. Between them they demonstrate validated DTOs, a slug derived from the title, RBAC at the controller, an audit-log entry on every mutation, soft deletes, and file attachment.
+| App | URL |
+| --- | --- |
+| Customer site | http://localhost:3000 |
+| Admin console | http://localhost:3001 |
+| API / Swagger | http://localhost:9000/doc |
 
-Adding a resource usually means: a Prisma model → a backend module → a `*_READ` / `*_WRITE` pair in `src/types/permission.enum.ts` (and its mirror in `apps/admin/lib/permissions.ts`) → a nav entry → a `features/` directory.
+Sign in to the admin console with the seeded account (`ADMIN_EMAIL` / `ADMIN_PASSWORD` in `apps/backend/.env`).
 
-## Architecture decisions
+---
 
-**The backend is the identity source of truth.** NestJS owns users, password hashing, ES256 JWTs, refresh rotation, session revocation and OAuth provider linking. NextAuth exists in the frontends only to run the Google redirect dance and to hold the backend's tokens in an encrypted cookie. Web, admin, and any future mobile client all authenticate the same way.
+## Docker (whole stack)
 
-_Better Auth was considered and rejected_: it is an auth **server**, so putting it in the frontends would stand a second one in front of the real one, with two session stores that can disagree. The reasoning is in [the design spec](docs/2026-07-14-groundwork-design.md).
+From the repository root:
 
-**Types cannot drift from the API.** The backend emits `openapi.json`; `@workspace/api-client` generates its types from it. Turbo runs `backend#openapi` before the client builds, so changing a route breaks the frontend build rather than production.
+```bash
+cp .env.example .env
+# fill DATA_ENCRYPTION_KEY, AUTH_EXCHANGE_SECRET, AUTH_SECRET
+#   openssl rand -base64 32   (once per secret)
 
-**Permissions are enforced server-side.** `apps/admin/lib/permissions.ts` mirrors the backend's map, but only to decide which nav entries and buttons to render. Every call is authorized by `PermissionsGuard` — a tampered client gets a 403, not access.
+cd apps/backend
+bun run keys:generate
+cd ../..
 
-**Nothing is trusted until it has been run.** Unit tests mock the repository, which means they cannot tell you whether a guard is actually _attached_ to a route: a controller that lost its `@UseGuards` would pass all of them. `apps/backend/test/` drives the real HTTP stack — router, pipes, guards, Prisma, Postgres — and asserts that a `VIEWER` really does get a 403 from `POST /v1/admin/items`. CI builds the Docker images for the same reason.
+docker compose up --build
+```
 
-## Commands
+Images are built from the **repo root**. Signing keys are mounted into the container; they are not copied into the image.
 
-|                                        |                                                               |
-| -------------------------------------- | ------------------------------------------------------------- |
-| `bun dev`                              | everything, in parallel                                       |
-| `bun run build`                        | build all (regenerates the API client first)                  |
-| `bun run test`                         | Vitest + Jest                                                 |
-| `bun run test:int` (in `apps/backend`) | HTTP-level tests against a real database — **needs Postgres** |
-| `bunx turbo test:e2e`                  | Playwright — **needs the backend running and seeded**         |
-| `bun run lint` · `bun run typecheck`   | across the workspace                                          |
-| `bun run format`                       | Prettier; CI fails on anything unformatted                    |
+---
 
-Backend-only: `db:migrate`, `db:seed`, `keys:generate`, `openapi`.
+## Useful commands
 
-## Secrets
+Run these from the repository root unless noted.
 
-`.env*` (except `.env.example`), `keys/` and `storage/` are git-ignored. Nothing secret ships in this template — generate your own with `keys:generate` and `openssl rand -base64 32`.
+| Command | Purpose |
+| --- | --- |
+| `bun install` | Install workspace dependencies |
+| `bun dev` | Web, admin, and API together |
+| `bun run build` | Production build (regenerates the API client first) |
+| `bun run lint` | Lint the workspace |
+| `bun run typecheck` | TypeScript check |
+| `bun run format` | Prettier |
+| `bun run test` | Vitest + Jest (from each app as configured) |
+| `bun run test:int` | Backend HTTP tests against a real database (`apps/backend`) |
+| `bunx turbo test:e2e` | Playwright — backend must be running and seeded |
+
+Backend-only (`apps/backend`): `db:migrate`, `db:seed`, `db:deploy`, `keys:generate`, `openapi`.
+
+---
+
+## User guide (short)
+
+### Customer
+
+1. Open https://vrentnow.live (or http://localhost:3000).
+2. Register or sign in.
+3. Browse **Vehicles**, pick dates, open a vehicle, and create a booking.
+4. Complete payment (PayHere / KokoPay / Payzy).
+5. Open **My Bookings** to see status, download the PDF receipt, or cancel if still allowed.
+6. After a completed rental, submit a review. After collection, handover photos appear on the booking.
+
+### Administrator
+
+1. Open https://admin.vrentnow.live (or http://localhost:3001).
+2. Sign in with a staff / SUPER_ADMIN account.
+3. Use **Vehicles** and **Categories** to maintain the fleet.
+4. Open **Bookings** to confirm or cancel, then upload NIC, licence, and agreement photos at handover.
+5. Use **Customers**, **Deals**, **Inquiries**, **Staff**, and **Audit log** as needed.
+
+---
+
+## Testing
+
+- **Playwright** — end-to-end tests under `apps/web/e2e/` and `apps/admin/e2e/` (registration, login, booking, payment paths, admin CRUD).
+- **Jest** — backend unit and integration tests (`apps/backend`).
+- **Vitest** — frontend unit tests.
+
+The backend must be running (and usually seeded) before Playwright.
+
+---
+
+## Environment files (do not commit)
+
+| File | Used by |
+| --- | --- |
+| `apps/backend/.env` | API, Prisma, JWT keys, mail, PayHere |
+| `apps/web/.env.local` | Customer Next.js app |
+| `apps/admin/.env.local` | Admin Next.js app |
+| `.env` (repo root) | Docker Compose only |
+
+`.env*`, `keys/`, and `storage/` are gitignored. Copy from each `.env.example`.
+
+---
+
+## Team
+
+SEN4002 Software Design & Development — ICBT / Cardiff Metropolitan University.
+
+| Student name | Cardiff ID | ICBT student ID | Contribution |
+| --- | --- | --- | --- |
+| Ayodya Sasanka Muthukumaru | st20353183 | CL/BSCSE-CMU/10/01 | Team lead; system architecture; customer and admin frontends; NestJS API; hosting and integration; report |
+| P.V.A. Chamath Sandaru | st20353188 | CL/BSCSE-CMU/10/07 | Primary UX/UI designer (Figma wireframes and high-fidelity UI); selected frontend pages; report |
+| A.A. Sachira Samuditha | st20353185 | CL/BSCSE-CMU/10/04 | Quality assurance: automated tests (Playwright) and manual testing |
+| A.T.R. Mahendrasekara | st20353191 | CL/BSCSE-CMU/10/11 | Requirements gathering and analysis; selected frontend pages |
+
+---
+
+## Academic use
+
+This project was built for the SEN4002 module. It is not a commercial product licence. Do not commit secrets (`.env`, JWT keys, payment merchant secrets) to GitHub.

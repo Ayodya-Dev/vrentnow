@@ -1,0 +1,93 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-groundwork}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 9000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-groundwork}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
+      AUTH_EXCHANGE_SECRET: ${AUTH_EXCHANGE_SECRET}
+      JWT_PRIVATE_KEY_PATH: /tmp/keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /tmp/keys/public.pem
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://vrentnow.live,https://admin.vrentnow.live}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-30d}
+      APP_WEB_URL: ${APP_WEB_URL:-https://vrentnow.live}
+      FILES_DRIVER: ${FILES_DRIVER:-local}
+      FILES_BASE_URL: ${FILES_BASE_URL:-https://api.vrentnow.live}
+      LOCAL_STORAGE_DIR: /repo/apps/backend/storage
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-no-reply@vrentnow.live}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-VRentNow}
+      PAYHERE_MERCHANT_ID: ${PAYHERE_MERCHANT_ID:-}
+      PAYHERE_MERCHANT_SECRET: ${PAYHERE_MERCHANT_SECRET:-}
+      PAYHERE_DOMAIN: ${PAYHERE_DOMAIN:-https://api.vrentnow.live}
+      PAYHERE_SANDBOX: ${PAYHERE_SANDBOX:-false}
+      FILE_ORPHAN_TTL_HOURS: ${FILE_ORPHAN_TTL_HOURS:-24}
+      RUN_MIGRATIONS: "true"
+      RUN_SEED: "true"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@vrentnow.live}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+    volumes:
+      - backend_storage2:/repo/apps/backend/storage
+      - jwt_keys2:/tmp/keys
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_URL: http://backend:9000/v1
+      AUTH_URL: https://vrentnow.live
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_EXCHANGE_SECRET: ${AUTH_EXCHANGE_SECRET}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      AUTH_TRUST_HOST: "true"
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_URL: http://backend:9000/v1
+      AUTH_URL: https://admin.vrentnow.live
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_EXCHANGE_SECRET: ${AUTH_EXCHANGE_SECRET}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      AUTH_TRUST_HOST: "true"
+
+volumes:
+  postgres_data:
+  backend_storage2:
+  jwt_keys2:
