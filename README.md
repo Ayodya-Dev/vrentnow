@@ -57,7 +57,7 @@ This repository is the SEN4002 Software Design & Development (PORT1) team projec
 | Email | Brevo HTTP API in production; log transport in development |
 | Files | Local disk in development; Amazon S3 in production (uploads and database backups) |
 | PDF receipts | Generated on the API (PDFKit) |
-| Testing | Playwright (e2e), Jest (backend), Vitest (frontends) |
+| Testing | Playwright (e2e) |
 | Deployment | Docker on a Contabo Linux VPS, Cloudflare DNS + HTTPS, Spaceship domain, GitHub auto-deploy on `main` |
 
 **Package manager:** [Bun](https://bun.sh/) (`bun install`, `bun dev`, `bun run build`). Do not use npm for this repo.
@@ -199,7 +199,7 @@ Set at least:
 - `DATABASE_URL`
 - `DATA_ENCRYPTION_KEY` — `openssl rand -base64 32`
 - `AUTH_EXCHANGE_SECRET` — same value as in web and admin
-- `ADMIN_EMAIL` / `ADMIN_PASSWORD` (defaults: `admin@example.com` / `ChangeMe123!`)
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` (defaults:  / `)
 
 Then:
 
@@ -337,10 +337,10 @@ SEN4002 Software Design & Development — ICBT / Cardiff Metropolitan University
 
 | Student name | Cardiff ID | ICBT student ID | Contribution |
 | --- | --- | --- | --- |
-| Ayodya Sasanka Muthukumaru | st20353183 | CL/BSCSE-CMU/10/01 | Team lead; system architecture; customer and admin frontends; NestJS API; hosting and integration; report |
-| P.V.A. Chamath Sandaru | st20353188 | CL/BSCSE-CMU/10/07 | Primary UX/UI designer (Figma wireframes and high-fidelity UI); selected frontend pages; report |
-| A.A. Sachira Samuditha | st20353185 | CL/BSCSE-CMU/10/04 | Quality assurance: automated tests (Playwright) and manual testing |
-| A.T.R. Mahendrasekara | st20353191 | CL/BSCSE-CMU/10/11 | Requirements gathering and analysis; selected frontend pages |
+| Ayodya Sasanka Muthukumaru | st20353183 | CL/BSCSE-CMU/10/01 | Team leadership; frontend and backend ,API; system architecture; hosting and integration; limited QA support; final report |
+| P.V.A. Chamath Sandaru | st20353188 | CL/BSCSE-CMU/10/07 | Primary UX/UI designer; full UI design in Figma; wireframes; selected frontend pages; manual testing and test evidence; final report |
+| A.A. Sachira Samuditha | st20353185 | CL/BSCSE-CMU/10/04 | Full QA; automated testing; manual and edge-case testing; test evidence and defect reporting; selected frontend pages; final report|
+| A.T.R. Mahendrasekara | st20353191 | CL/BSCSE-CMU/10/11 | Requirements gathering; full system analysis; selected frontend page development; manual testing and test evidence; final report |
 
 ---
 
